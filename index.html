@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Spatial Audio Prototype</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>🎧 3D Spatial Audio Prototype</h1>
+            <p>헤드폰을 착용하고 입체 음향을 경험해보세요!</p>
+        </header>
+
+        <div id="controls-info">
+            <div class="key-group">
+                <span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span>
+                <span class="label">XZ 평면 이동</span>
+            </div>
+            <div class="key-group">
+                <span class="key">Q</span><span class="key">E</span>
+                <span class="label">위/아래 이동</span>
+            </div>
+            <div class="key-group">
+                <span class="key">Space</span>
+                <span class="label">소리 ON/OFF</span>
+            </div>
+        </div>
+
+        <div id="start-screen">
+            <button id="start-btn">🔊 시작하기</button>
+            <p>클릭하여 오디오를 활성화하세요</p>
+        </div>
+
+        <div id="main-content" class="hidden">
+            <div id="visualization">
+                <canvas id="scene-canvas"></canvas>
+                <div id="position-info">
+                    <div id="sound-pos">소리 위치: <span id="sound-coords">(0, 0, 5)</span></div>
+                    <div id="listener-pos">리스너 위치: <span id="listener-coords">(0, 0, 0)</span></div>
+                    <div id="distance">거리: <span id="distance-value">5.0</span>m</div>
+                </div>
+            </div>
+
+            <div id="audio-controls">
+                <div class="control-group">
+                    <label for="volume">볼륨</label>
+                    <input type="range" id="volume" min="0" max="1" step="0.01" value="0.5">
+                    <span id="volume-value">50%</span>
+                </div>
+                <div class="control-group">
+                    <label for="sound-select">소리 종류</label>
+                    <select id="sound-select">
+                        <option value="sine">사인파 (Sine)</option>
+                        <option value="square">사각파 (Square)</option>
+                        <option value="sawtooth">톱니파 (Sawtooth)</option>
+                        <option value="triangle">삼각파 (Triangle)</option>
+                        <option value="noise">백색 소음 (White Noise)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="frequency">주파수</label>
+                    <input type="range" id="frequency" min="100" max="1000" step="10" value="440">
+                    <span id="frequency-value">440 Hz</span>
+                </div>
+                <div class="control-group">
+                    <label for="panning-model">패닝 모델</label>
+                    <select id="panning-model">
+                        <option value="HRTF">HRTF (머리 전달 함수)</option>
+                        <option value="equalpower">Equal Power</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="distance-model">거리 모델</label>
+                    <select id="distance-model">
+                        <option value="inverse">역비례 (Inverse)</option>
+                        <option value="linear">선형 (Linear)</option>
+                        <option value="exponential">지수 (Exponential)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="status">
+                <span id="audio-status" class="status-off">🔇 소리 꺼짐</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="spatial-audio.js"></script>
+</body>
+</html>
