@@ -128,10 +128,48 @@
                         </label>
                         <span class="filter-info">뒤: <span id="back-level">0%</span></span>
                     </div>
-                    <div class="control-group">
-                        <label for="front-back-intensity">앞/뒤 효과 강도</label>
-                        <input type="range" id="front-back-intensity" min="0" max="2" step="0.1" value="1">
-                        <span id="front-back-value">100%</span>
+                    <div class="control-group angle-intensity-group">
+                        <label>각도별 효과 강도 (귀 모양 보정)</label>
+                        <div class="angle-sliders">
+                            <div class="angle-slider">
+                                <span class="angle-label">0°</span>
+                                <input type="range" id="intensity-0" min="0" max="3" step="0.1" value="0">
+                                <span class="angle-value" id="intensity-0-value">0%</span>
+                            </div>
+                            <div class="angle-slider">
+                                <span class="angle-label">30°</span>
+                                <input type="range" id="intensity-30" min="0" max="3" step="0.1" value="0">
+                                <span class="angle-value" id="intensity-30-value">0%</span>
+                            </div>
+                            <div class="angle-slider">
+                                <span class="angle-label">60°</span>
+                                <input type="range" id="intensity-60" min="0" max="3" step="0.1" value="0">
+                                <span class="angle-value" id="intensity-60-value">0%</span>
+                            </div>
+                            <div class="angle-slider">
+                                <span class="angle-label">90°</span>
+                                <input type="range" id="intensity-90" min="0" max="3" step="0.1" value="0.5">
+                                <span class="angle-value" id="intensity-90-value">50%</span>
+                            </div>
+                            <div class="angle-slider">
+                                <span class="angle-label">120°</span>
+                                <input type="range" id="intensity-120" min="0" max="3" step="0.1" value="1">
+                                <span class="angle-value" id="intensity-120-value">100%</span>
+                            </div>
+                            <div class="angle-slider">
+                                <span class="angle-label">150°</span>
+                                <input type="range" id="intensity-150" min="0" max="3" step="0.1" value="1.5">
+                                <span class="angle-value" id="intensity-150-value">150%</span>
+                            </div>
+                            <div class="angle-slider">
+                                <span class="angle-label">180°</span>
+                                <input type="range" id="intensity-180" min="0" max="3" step="0.1" value="2">
+                                <span class="angle-value" id="intensity-180-value">200%</span>
+                            </div>
+                        </div>
+                        <div class="current-intensity">
+                            현재 적용 강도: <span id="front-back-value">0%</span>
+                        </div>
                     </div>
                 </div>
             </div>

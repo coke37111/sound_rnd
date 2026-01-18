@@ -317,6 +317,61 @@ header p {
     color: #888;
 }
 
+/* 각도별 강도 슬라이더 */
+.angle-intensity-group {
+    grid-column: 1 / -1;
+}
+
+.angle-sliders {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.angle-slider {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 8px;
+    border-radius: 8px;
+}
+
+.angle-slider .angle-label {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #ff6b6b;
+    margin-bottom: 5px;
+}
+
+.angle-slider input[type="range"] {
+    width: 100%;
+    height: 6px;
+}
+
+.angle-slider .angle-value {
+    font-size: 0.8rem;
+    color: #ffe66d;
+    font-family: monospace;
+    margin-top: 3px;
+}
+
+.current-intensity {
+    margin-top: 12px;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+.current-intensity span {
+    color: #00d9ff;
+    font-weight: bold;
+    font-family: monospace;
+}
+
 #filter-freq {
     color: #ffe66d;
     font-family: monospace;
