@@ -72,17 +72,18 @@ class SpatialAudioEngine {
         };
 
         // 구면 좌표계 (Spherical Coordinates)
-        // azimuth: 방위각 (수평 회전, 0 = 정면, 라디안)
+        // azimuth: 방위각 (수평 회전, π = 정면(-Z), 0 = 후면(+Z), 라디안)
         // elevation: 고도각 (수직 회전, 0 = 수평, 라디안)
         // radius: 반지름 (거리, 고정값)
         this.spherical = {
-            azimuth: 0,           // -π ~ π (A/D로 조절)
+            azimuth: Math.PI,     // -π ~ π (A/D로 조절), π = 정면
             elevation: 0,         // -π/2 ~ π/2 (W/S로 조절)
             radius: 5             // 고정 거리 (Q/E로 조절 가능)
         };
 
         // 직교 좌표 (구면 좌표에서 계산됨)
-        this.soundPosition = { x: 0, y: 0, z: 5 };
+        // 초기 위치: 정면 (z = -5)
+        this.soundPosition = { x: 0, y: 0, z: -5 };
 
         // 리스너(플레이어) 위치 (원점 고정)
         this.listenerPosition = { x: 0, y: 0, z: 0 };
@@ -793,8 +794,8 @@ class SpatialAudioEngine {
     }
 
     resetPosition() {
-        // 구면 좌표 초기화
-        this.spherical.azimuth = 0;
+        // 구면 좌표 초기화 (정면에서 시작)
+        this.spherical.azimuth = Math.PI;  // π = 정면(-Z)
         this.spherical.elevation = 0;
         this.spherical.radius = 5;
 
@@ -1033,7 +1034,12 @@ class SpatialAudioEngine {
             sph.radius.toFixed(1);
 
         // 구면 좌표 정보 업데이트
-        const azimuthDeg = (sph.azimuth * 180 / Math.PI).toFixed(0);
+        // 좌표계: azimuth=0은 +Z(뒤쪽), azimuth=π는 -Z(앞쪽)
+        // UI 표시: 0°=앞, ±180°=뒤, 90°=우측, -90°=좌측
+        let displayAzimuth = Math.PI - sph.azimuth;
+        if (displayAzimuth > Math.PI) displayAzimuth -= 2 * Math.PI;
+        if (displayAzimuth < -Math.PI) displayAzimuth += 2 * Math.PI;
+        const azimuthDeg = (displayAzimuth * 180 / Math.PI).toFixed(0);
         const elevationDeg = (sph.elevation * 180 / Math.PI).toFixed(0);
         document.getElementById('spherical-coords').textContent =
             `방위: ${azimuthDeg}° | 고도: ${elevationDeg}°`;
@@ -1045,15 +1051,12 @@ class SpatialAudioEngine {
                 filterFreq > 10000 ? '없음' : Math.round(filterFreq) + ' Hz';
         }
 
-        // 앞/뒤 레벨 업데이트
+        // 앞/뒤 레벨 업데이트 (0°=앞=0%, 180°=뒤=100%)
         const backLevelEl = document.getElementById('back-level');
         if (backLevelEl) {
             const absAzimuth = Math.abs(sph.azimuth);
-            let backness = 0;
-            if (absAzimuth > Math.PI / 2) {
-                backness = (absAzimuth - Math.PI / 2) / (Math.PI / 2);
-                backness = Math.min(1, backness);
-            }
+            // azimuth=0(뒤)일 때 100%, azimuth=π(앞)일 때 0%
+            const backness = 1 - absAzimuth / Math.PI;
             backLevelEl.textContent = Math.round(backness * 100) + '%';
         }
     }
@@ -1384,7 +1387,12 @@ class SpatialAudioEngine {
     }
 
     drawDirectionIndicators(ctx, width, height) {
-        let azimuthDeg = this.spherical.azimuth * 180 / Math.PI;
+        // 좌표계: azimuth=0은 +Z(뒤쪽), azimuth=π는 -Z(앞쪽)
+        // UI 표시용으로 변환: 0°=앞, ±180°=뒤
+        let displayAzimuth = Math.PI - this.spherical.azimuth;
+        if (displayAzimuth > Math.PI) displayAzimuth -= 2 * Math.PI;
+        if (displayAzimuth < -Math.PI) displayAzimuth += 2 * Math.PI;
+        let azimuthDeg = displayAzimuth * 180 / Math.PI;
         let elevationDeg = this.spherical.elevation * 180 / Math.PI;
 
         // 고도각이 90도를 넘으면 뒤쪽으로 넘어간 것
@@ -1398,7 +1406,7 @@ class SpatialAudioEngine {
             if (effectiveAzimuth > 180) effectiveAzimuth -= 360;
         }
 
-        // 방향 텍스트 결정
+        // 방향 텍스트 결정 (0°=정면, ±180°=후면)
         let horizontalDir = '';
         let verticalDir = '';
 
