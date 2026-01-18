@@ -55,7 +55,7 @@ class SpatialAudioEngine {
             high: { freq: 12000, q: 1.0, label: '고음 (8k-16kHz)' }
         };
 
-        // 대역별 각도 강도 설정
+        // 대역별 각도 강도 설정 (좌우/앞뒤 - azimuth)
         this.bandIntensities = {
             low: { 0: 0, 30: 0, 60: 0, 90: 0, 120: 0, 150: 0, 180: 0 },
             mid: { 0: 0, 30: 0, 60: 0, 90: 0.3, 120: 0.6, 150: 0.8, 180: 1.0 },
@@ -63,8 +63,24 @@ class SpatialAudioEngine {
             high: { 0: 0, 30: 0, 60: 0.3, 90: 0.7, 120: 1.2, 150: 2.0, 180: 2.5 }
         };
 
-        // 대역별 필터 노드 (각 대역당 peaking filter)
+        // 대역별 고도 강도 설정 (위/아래 - elevation)
+        this.elevationBandIntensities = {
+            low: { 0: 0, 30: 0, 60: 0, 90: 0 },
+            mid: { 0: 0, 30: 0, 60: 0, 90: 0 },
+            highMid: { 0: 0, 30: 0, 60: 0.3, 90: 0.5 },
+            high: { 0: 0, 30: 0, 60: 0.5, 90: 0.8 }
+        };
+
+        // 대역별 필터 노드 (각 대역당 peaking filter) - azimuth용
         this.bandFilters = {
+            low: null,
+            mid: null,
+            highMid: null,
+            high: null
+        };
+
+        // 대역별 필터 노드 - elevation용
+        this.elevationFilters = {
             low: null,
             mid: null,
             highMid: null,
@@ -194,7 +210,7 @@ class SpatialAudioEngine {
             });
         });
 
-        // 대역별 각도 강도 슬라이더 이벤트
+        // 대역별 각도 강도 슬라이더 이벤트 (azimuth)
         const bands = ['low', 'mid', 'highMid', 'high'];
         const angles = [0, 30, 60, 90, 120, 150, 180];
 
@@ -204,6 +220,32 @@ class SpatialAudioEngine {
                     const value = parseFloat(e.target.value);
                     this.setBandAngleIntensity(band, angle, value);
                     document.getElementById(`${band}-${angle}-value`).textContent = Math.round(value * 100) + '%';
+                });
+            });
+        });
+
+        // 고도(elevation) 대역별 탭 전환
+        document.querySelectorAll('.band-tab-elev').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                const band = e.currentTarget.dataset.band;
+                // 모든 탭 비활성화
+                document.querySelectorAll('.band-tab-elev').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.band-panel-elev').forEach(p => p.classList.remove('active'));
+                // 선택한 탭 활성화
+                e.currentTarget.classList.add('active');
+                document.getElementById(`band-elev-${band}`)?.classList.add('active');
+            });
+        });
+
+        // 대역별 고도 강도 슬라이더 이벤트 (elevation)
+        const elevAngles = [0, 30, 60, 90];
+
+        bands.forEach(band => {
+            elevAngles.forEach(angle => {
+                document.getElementById(`elev-${band}-${angle}`)?.addEventListener('input', (e) => {
+                    const value = parseFloat(e.target.value);
+                    this.setElevationBandIntensity(band, angle, value);
+                    document.getElementById(`elev-${band}-${angle}-value`).textContent = Math.round(value * 100) + '%';
                 });
             });
         });
@@ -381,7 +423,7 @@ class SpatialAudioEngine {
         this.earlyReflectionsFilter.frequency.value = 8000;
 
         // 4. 앞/뒤 구분 필터 (Front-Back Distinction) - 대역별 peaking 필터
-        // 각 주파수 대역별로 독립적인 필터 생성
+        // 각 주파수 대역별로 독립적인 필터 생성 (azimuth용)
         for (const band of Object.keys(this.frequencyBands)) {
             const bandConfig = this.frequencyBands[band];
             this.bandFilters[band] = this.audioContext.createBiquadFilter();
@@ -391,7 +433,17 @@ class SpatialAudioEngine {
             this.bandFilters[band].gain.value = 0; // 초기값: 필터 없음
         }
 
-        // 5. Dry/Wet 믹스를 위한 Gain 노드들
+        // 5. 위/아래 구분 필터 (Elevation) - 대역별 peaking 필터
+        for (const band of Object.keys(this.frequencyBands)) {
+            const bandConfig = this.frequencyBands[band];
+            this.elevationFilters[band] = this.audioContext.createBiquadFilter();
+            this.elevationFilters[band].type = 'peaking';
+            this.elevationFilters[band].frequency.value = bandConfig.freq;
+            this.elevationFilters[band].Q.value = bandConfig.q;
+            this.elevationFilters[band].gain.value = 0; // 초기값: 필터 없음
+        }
+
+        // 6. Dry/Wet 믹스를 위한 Gain 노드들
         this.dryGain = this.audioContext.createGain();
         this.dryGain.gain.value = 1 - this.reverbAmount;
 
@@ -410,12 +462,18 @@ class SpatialAudioEngine {
         //                                                       \-> Convolver -> reverbGain -/
 
         // 앞/뒤 구분 필터 체인 (대역별 필터 직렬 연결)
-        // Panner -> low -> mid -> highMid -> high -> lowpassFilter
+        // Panner -> azimuth filters -> elevation filters -> lowpassFilter
         this.panner.connect(this.bandFilters.low);
         this.bandFilters.low.connect(this.bandFilters.mid);
         this.bandFilters.mid.connect(this.bandFilters.highMid);
         this.bandFilters.highMid.connect(this.bandFilters.high);
-        this.bandFilters.high.connect(this.lowpassFilter);
+
+        // 고도 필터 체인 연결
+        this.bandFilters.high.connect(this.elevationFilters.low);
+        this.elevationFilters.low.connect(this.elevationFilters.mid);
+        this.elevationFilters.mid.connect(this.elevationFilters.highMid);
+        this.elevationFilters.highMid.connect(this.elevationFilters.high);
+        this.elevationFilters.high.connect(this.lowpassFilter);
 
         // Dry path (직접음)
         this.lowpassFilter.connect(this.dryGain);
@@ -552,14 +610,21 @@ class SpatialAudioEngine {
     setFrontBackFilterEnabled(enabled) {
         this.frontBackFilterEnabled = enabled;
         if (!enabled) {
-            // 모든 대역 필터 비활성화
+            // 모든 대역 필터 비활성화 (azimuth)
             for (const band of Object.keys(this.bandFilters)) {
                 if (this.bandFilters[band]) {
                     this.bandFilters[band].gain.setTargetAtTime(0, this.audioContext.currentTime, 0.1);
                 }
             }
+            // 모든 대역 필터 비활성화 (elevation)
+            for (const band of Object.keys(this.elevationFilters)) {
+                if (this.elevationFilters[band]) {
+                    this.elevationFilters[band].gain.setTargetAtTime(0, this.audioContext.currentTime, 0.1);
+                }
+            }
         } else {
             this.updateFrontBackFilter();
+            this.updateElevationFilter();
         }
     }
 
@@ -572,10 +637,90 @@ class SpatialAudioEngine {
         }
     }
 
+    // 고도 대역별 각도 강도 설정
+    setElevationBandIntensity(band, angle, value) {
+        if (this.elevationBandIntensities[band]) {
+            this.elevationBandIntensities[band][angle] = value;
+            this.updateElevationFilter();
+            this.saveSettings();
+        }
+    }
+
+    // 고도 필터 업데이트
+    updateElevationFilter() {
+        if (!this.elevationFilters.low || !this.frontBackFilterEnabled) {
+            return;
+        }
+
+        const elevation = this.spherical.elevation;
+
+        // elevation을 도(degree)로 변환 (절대값 사용 - 위/아래 대칭)
+        const elevationDeg = Math.abs(elevation * 180 / Math.PI);
+
+        // 각 대역별로 보간된 강도 계산 및 필터 적용
+        const bands = ['low', 'mid', 'highMid', 'high'];
+        bands.forEach(band => {
+            const intensity = this.getInterpolatedElevationIntensity(elevationDeg, band);
+
+            // peaking 필터: 강도에 따라 감쇠 (-12dB까지)
+            const gain = -12 * intensity;
+            this.elevationFilters[band].gain.setTargetAtTime(
+                gain,
+                this.audioContext.currentTime,
+                0.05
+            );
+
+            // UI 업데이트
+            const intensityEl = document.getElementById(`elev-${band}-intensity`);
+            if (intensityEl) {
+                intensityEl.textContent = Math.round(intensity * 100) + '%';
+            }
+        });
+    }
+
+    // 고도에 따른 강도 보간
+    getInterpolatedElevationIntensity(angleDeg, band) {
+        const angles = [0, 30, 60, 90];
+        const absAngle = Math.abs(angleDeg);
+        const bandIntensities = this.elevationBandIntensities[band];
+
+        if (!bandIntensities) return 0;
+
+        // 정확히 일치하는 각도가 있으면 그 값 반환
+        if (bandIntensities.hasOwnProperty(absAngle)) {
+            return bandIntensities[absAngle];
+        }
+
+        // 90도 초과 시 90도 값 사용
+        if (absAngle >= 90) {
+            return bandIntensities[90] || 0;
+        }
+
+        // 보간할 두 각도 찾기
+        let lowerAngle = 0;
+        let upperAngle = 90;
+
+        for (let i = 0; i < angles.length - 1; i++) {
+            if (absAngle >= angles[i] && absAngle <= angles[i + 1]) {
+                lowerAngle = angles[i];
+                upperAngle = angles[i + 1];
+                break;
+            }
+        }
+
+        // 선형 보간
+        const t = (absAngle - lowerAngle) / (upperAngle - lowerAngle);
+        const lowerValue = bandIntensities[lowerAngle] || 0;
+        const upperValue = bandIntensities[upperAngle] || 0;
+
+        return lowerValue + (upperValue - lowerValue) * t;
+    }
+
     // localStorage에 설정 저장
     saveSettings() {
         const settings = {
-            bandIntensities: this.bandIntensities
+            bandIntensities: this.bandIntensities,
+            elevationBandIntensities: this.elevationBandIntensities
         };
         try {
             localStorage.setItem('spatialAudioSettings', JSON.stringify(settings));
@@ -592,8 +737,11 @@ class SpatialAudioEngine {
                 const settings = JSON.parse(saved);
                 if (settings.bandIntensities) {
                     this.bandIntensities = settings.bandIntensities;
-                    return true;
                 }
+                if (settings.elevationBandIntensities) {
+                    this.elevationBandIntensities = settings.elevationBandIntensities;
+                }
+                return true;
             }
         } catch (e) {
             console.warn('설정 불러오기 실패:', e);
@@ -605,13 +753,30 @@ class SpatialAudioEngine {
     updateBandIntensityUI() {
         const bands = ['low', 'mid', 'highMid', 'high'];
         const angles = [0, 30, 60, 90, 120, 150, 180];
+        const elevAngles = [0, 30, 60, 90];
 
+        // Azimuth 슬라이더 업데이트
         bands.forEach(band => {
             angles.forEach(angle => {
                 const slider = document.getElementById(`${band}-${angle}`);
                 const valueEl = document.getElementById(`${band}-${angle}-value`);
                 if (slider && this.bandIntensities[band]) {
                     const value = this.bandIntensities[band][angle] || 0;
+                    slider.value = value;
+                    if (valueEl) {
+                        valueEl.textContent = Math.round(value * 100) + '%';
+                    }
+                }
+            });
+        });
+
+        // Elevation 슬라이더 업데이트
+        bands.forEach(band => {
+            elevAngles.forEach(angle => {
+                const slider = document.getElementById(`elev-${band}-${angle}`);
+                const valueEl = document.getElementById(`elev-${band}-${angle}-value`);
+                if (slider && this.elevationBandIntensities[band]) {
+                    const value = this.elevationBandIntensities[band][angle] || 0;
                     slider.value = value;
                     if (valueEl) {
                         valueEl.textContent = Math.round(value * 100) + '%';
@@ -948,6 +1113,7 @@ class SpatialAudioEngine {
         this.updatePannerPosition();
         this.updateDistanceFilter(); // 거리에 따른 필터 업데이트
         this.updateFrontBackFilter(); // 앞/뒤 구분 필터 업데이트
+        this.updateElevationFilter(); // 위/아래 구분 필터 업데이트
         this.updateUI();
     }
 
