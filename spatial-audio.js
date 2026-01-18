@@ -313,9 +313,9 @@ class SpatialAudioEngine {
         if (this.spherical.azimuth > Math.PI) this.spherical.azimuth -= Math.PI * 2;
         if (this.spherical.azimuth < -Math.PI) this.spherical.azimuth += Math.PI * 2;
 
-        // 고도각 범위 제한 (-π/2 ~ π/2)
-        this.spherical.elevation = Math.max(-Math.PI / 2 + 0.01,
-            Math.min(Math.PI / 2 - 0.01, this.spherical.elevation));
+        // 고도각 범위 제한 (-π ~ π, 연속 회전)
+        if (this.spherical.elevation > Math.PI) this.spherical.elevation -= Math.PI * 2;
+        if (this.spherical.elevation < -Math.PI) this.spherical.elevation += Math.PI * 2;
 
         // 거리 범위 제한
         this.spherical.radius = Math.max(this.minRadius,
@@ -546,24 +546,43 @@ class SpatialAudioEngine {
     }
 
     drawDirectionIndicators(ctx, width, height) {
-        const azimuthDeg = this.spherical.azimuth * 180 / Math.PI;
-        const elevationDeg = this.spherical.elevation * 180 / Math.PI;
+        let azimuthDeg = this.spherical.azimuth * 180 / Math.PI;
+        let elevationDeg = this.spherical.elevation * 180 / Math.PI;
+
+        // 고도각이 90도를 넘으면 뒤쪽으로 넘어간 것
+        // 실제 방위각을 조정하여 방향 표시
+        let effectiveAzimuth = azimuthDeg;
+        let isFlipped = false;
+
+        if (elevationDeg > 90 || elevationDeg < -90) {
+            isFlipped = true;
+            effectiveAzimuth = azimuthDeg + 180;
+            if (effectiveAzimuth > 180) effectiveAzimuth -= 360;
+        }
 
         // 방향 텍스트 결정
         let horizontalDir = '';
         let verticalDir = '';
 
-        if (azimuthDeg > -22.5 && azimuthDeg <= 22.5) horizontalDir = '정면';
-        else if (azimuthDeg > 22.5 && azimuthDeg <= 67.5) horizontalDir = '우측 앞';
-        else if (azimuthDeg > 67.5 && azimuthDeg <= 112.5) horizontalDir = '우측';
-        else if (azimuthDeg > 112.5 && azimuthDeg <= 157.5) horizontalDir = '우측 뒤';
-        else if (azimuthDeg > 157.5 || azimuthDeg <= -157.5) horizontalDir = '후면';
-        else if (azimuthDeg > -157.5 && azimuthDeg <= -112.5) horizontalDir = '좌측 뒤';
-        else if (azimuthDeg > -112.5 && azimuthDeg <= -67.5) horizontalDir = '좌측';
-        else if (azimuthDeg > -67.5 && azimuthDeg <= -22.5) horizontalDir = '좌측 앞';
+        if (effectiveAzimuth > -22.5 && effectiveAzimuth <= 22.5) horizontalDir = '정면';
+        else if (effectiveAzimuth > 22.5 && effectiveAzimuth <= 67.5) horizontalDir = '우측 앞';
+        else if (effectiveAzimuth > 67.5 && effectiveAzimuth <= 112.5) horizontalDir = '우측';
+        else if (effectiveAzimuth > 112.5 && effectiveAzimuth <= 157.5) horizontalDir = '우측 뒤';
+        else if (effectiveAzimuth > 157.5 || effectiveAzimuth <= -157.5) horizontalDir = '후면';
+        else if (effectiveAzimuth > -157.5 && effectiveAzimuth <= -112.5) horizontalDir = '좌측 뒤';
+        else if (effectiveAzimuth > -112.5 && effectiveAzimuth <= -67.5) horizontalDir = '좌측';
+        else if (effectiveAzimuth > -67.5 && effectiveAzimuth <= -22.5) horizontalDir = '좌측 앞';
 
-        if (elevationDeg > 30) verticalDir = '위';
-        else if (elevationDeg < -30) verticalDir = '아래';
+        // 고도 표시 (360도 기준)
+        const absElev = Math.abs(elevationDeg);
+        if (absElev > 150 || absElev < 30) {
+            // 수평에 가까움
+            verticalDir = '';
+        } else if (elevationDeg > 30 && elevationDeg <= 150) {
+            verticalDir = '위';
+        } else if (elevationDeg < -30 && elevationDeg >= -150) {
+            verticalDir = '아래';
+        }
 
         const dirText = verticalDir ? `${horizontalDir} ${verticalDir}` : horizontalDir;
 
