@@ -46,7 +46,16 @@ class SpatialAudioEngine {
 
         // 앞/뒤 구분을 위한 필터 (Front-Back Distinction)
         this.frontBackFilterEnabled = true;
-        this.frontBackIntensity = 1.0;    // 앞/뒤 효과 강도 (0~2)
+        // 각도별 효과 강도 (귀 모양에 따른 비선형 보정)
+        this.angleIntensities = {
+            0: 0,      // 정면
+            30: 0,     // 30도
+            60: 0,     // 60도
+            90: 0.5,   // 측면
+            120: 1.0,  // 120도
+            150: 1.5,  // 150도
+            180: 2.0   // 후면
+        };
         this.pinnaFilter = null;          // 귓바퀴 효과 (5-6kHz notch)
         this.headShadowFilter = null;     // 머리 그림자 효과
 
@@ -152,10 +161,13 @@ class SpatialAudioEngine {
             this.setFrontBackFilterEnabled(e.target.checked);
         });
 
-        document.getElementById('front-back-intensity')?.addEventListener('input', (e) => {
-            const value = parseFloat(e.target.value);
-            this.setFrontBackIntensity(value);
-            document.getElementById('front-back-value').textContent = Math.round(value * 100) + '%';
+        // 각도별 강도 슬라이더 이벤트
+        [0, 30, 60, 90, 120, 150, 180].forEach(angle => {
+            document.getElementById(`intensity-${angle}`)?.addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value);
+                this.setAngleIntensity(angle, value);
+                document.getElementById(`intensity-${angle}-value`).textContent = Math.round(value * 100) + '%';
+            });
         });
 
         // 오디오 파일 업로드
@@ -470,35 +482,35 @@ class SpatialAudioEngine {
 
         const azimuth = this.spherical.azimuth;
 
-        // azimuth: 0 = 정면, ±π = 후면
-        // |azimuth| > π/2 이면 뒤쪽
-        const absAzimuth = Math.abs(azimuth);
+        // azimuth를 도(degree)로 변환 (0~180)
+        const azimuthDeg = Math.abs(azimuth * 180 / Math.PI);
 
-        // 뒤쪽 정도 계산 (0 = 정면, 1 = 완전 후면)
-        // π/2 (90도) 이후부터 뒤로 인식
-        let backness = 0;
-        if (absAzimuth > Math.PI / 2) {
-            backness = (absAzimuth - Math.PI / 2) / (Math.PI / 2);
-            backness = Math.min(1, backness);
-        }
+        // 각도별 보간된 강도 계산
+        const intensity = this.getInterpolatedIntensity(azimuthDeg);
 
-        // 귓바퀴(pinna) 효과: 뒤쪽 소리는 5-6kHz 대역 감쇠
-        // 뒤쪽일수록 더 강한 notch (-12dB까지, intensity로 조절)
-        const pinnaGain = -12 * backness * this.frontBackIntensity;
+        // 귓바퀴(pinna) 효과: 5-6kHz 대역 감쇠
+        // 보간된 강도에 따라 -12dB까지
+        const pinnaGain = -12 * intensity;
         this.pinnaFilter.gain.setTargetAtTime(
             pinnaGain,
             this.audioContext.currentTime,
             0.05
         );
 
-        // 머리 그림자 효과: 뒤쪽 소리는 고주파 감쇠
-        // 뒤쪽일수록 더 강한 감쇠 (-8dB까지, intensity로 조절)
-        const headShadowGain = -8 * backness * this.frontBackIntensity;
+        // 머리 그림자 효과: 고주파 감쇠
+        // 보간된 강도에 따라 -8dB까지
+        const headShadowGain = -8 * intensity;
         this.headShadowFilter.gain.setTargetAtTime(
             headShadowGain,
             this.audioContext.currentTime,
             0.05
         );
+
+        // UI에 현재 적용 강도 표시
+        const frontBackValueEl = document.getElementById('front-back-value');
+        if (frontBackValueEl) {
+            frontBackValueEl.textContent = Math.round(intensity * 100) + '%';
+        }
     }
 
     // 앞/뒤 필터 활성화/비활성화
@@ -516,10 +528,40 @@ class SpatialAudioEngine {
         }
     }
 
-    // 앞/뒤 효과 강도 설정
-    setFrontBackIntensity(value) {
-        this.frontBackIntensity = value;
+    // 각도별 효과 강도 설정
+    setAngleIntensity(angle, value) {
+        this.angleIntensities[angle] = value;
         this.updateFrontBackFilter();
+    }
+
+    // 각도에 따른 강도 보간
+    getInterpolatedIntensity(angleDeg) {
+        const angles = [0, 30, 60, 90, 120, 150, 180];
+        const absAngle = Math.abs(angleDeg);
+
+        // 정확히 일치하는 각도가 있으면 그 값 반환
+        if (this.angleIntensities.hasOwnProperty(absAngle)) {
+            return this.angleIntensities[absAngle];
+        }
+
+        // 보간할 두 각도 찾기
+        let lowerAngle = 0;
+        let upperAngle = 180;
+
+        for (let i = 0; i < angles.length - 1; i++) {
+            if (absAngle >= angles[i] && absAngle <= angles[i + 1]) {
+                lowerAngle = angles[i];
+                upperAngle = angles[i + 1];
+                break;
+            }
+        }
+
+        // 선형 보간
+        const t = (absAngle - lowerAngle) / (upperAngle - lowerAngle);
+        const lowerValue = this.angleIntensities[lowerAngle];
+        const upperValue = this.angleIntensities[upperAngle];
+
+        return lowerValue + (upperValue - lowerValue) * t;
     }
 
     // Reverb 설정 변경
