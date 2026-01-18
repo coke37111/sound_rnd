@@ -372,45 +372,6 @@ header p {
     font-family: monospace;
 }
 
-/* 필터 주파수 설정 */
-.filter-freq-group {
-    grid-column: 1 / -1;
-}
-
-.filter-freq-controls {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 12px;
-    margin-top: 10px;
-}
-
-.freq-control {
-    display: flex;
-    flex-direction: column;
-    background: rgba(255, 107, 107, 0.1);
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 107, 107, 0.2);
-}
-
-.freq-control > span:first-child {
-    font-size: 0.8rem;
-    color: #ff9999;
-    margin-bottom: 5px;
-}
-
-.freq-control input[type="range"] {
-    width: 100%;
-    margin: 5px 0;
-}
-
-.freq-control > span:last-child {
-    font-size: 0.85rem;
-    color: #ffe66d;
-    font-family: monospace;
-    text-align: center;
-}
-
 #filter-freq {
     color: #ffe66d;
     font-family: monospace;

@@ -58,13 +58,6 @@ class SpatialAudioEngine {
         };
         this.pinnaFilter = null;          // 귓바퀴 효과 (5-6kHz notch)
         this.headShadowFilter = null;     // 머리 그림자 효과
-        this.hfCutoffFilter = null;       // 고주파 차단 필터
-
-        // 필터 주파수 설정
-        this.pinnaFreq = 5500;            // Pinna 필터 중심 주파수
-        this.pinnaQ = 2.0;                // Pinna 필터 Q값
-        this.headShadowFreq = 3000;       // Head Shadow 필터 주파수
-        this.hfCutoff = 20000;            // 고주파 차단 주파수 (20000 = OFF)
 
         // 구면 좌표계 (Spherical Coordinates)
         // azimuth: 방위각 (수평 회전, 0 = 정면, 라디안)
@@ -175,31 +168,6 @@ class SpatialAudioEngine {
                 this.setAngleIntensity(angle, value);
                 document.getElementById(`intensity-${angle}-value`).textContent = Math.round(value * 100) + '%';
             });
-        });
-
-        // 필터 주파수 설정 이벤트
-        document.getElementById('pinna-freq')?.addEventListener('input', (e) => {
-            const value = parseInt(e.target.value);
-            this.setPinnaFrequency(value);
-            document.getElementById('pinna-freq-value').textContent = value + ' Hz';
-        });
-
-        document.getElementById('pinna-q')?.addEventListener('input', (e) => {
-            const value = parseFloat(e.target.value);
-            this.setPinnaQ(value);
-            document.getElementById('pinna-q-value').textContent = value.toFixed(1);
-        });
-
-        document.getElementById('head-shadow-freq')?.addEventListener('input', (e) => {
-            const value = parseInt(e.target.value);
-            this.setHeadShadowFrequency(value);
-            document.getElementById('head-shadow-freq-value').textContent = value + ' Hz';
-        });
-
-        document.getElementById('hf-cutoff')?.addEventListener('input', (e) => {
-            const value = parseInt(e.target.value);
-            this.setHfCutoff(value);
-            document.getElementById('hf-cutoff-value').textContent = value >= 20000 ? 'OFF' : value + ' Hz';
         });
 
         // 오디오 파일 업로드
@@ -378,21 +346,15 @@ class SpatialAudioEngine {
         // 귓바퀴(pinna) 효과: 뒤쪽 소리는 5-6kHz 대역이 감쇠됨
         this.pinnaFilter = this.audioContext.createBiquadFilter();
         this.pinnaFilter.type = 'peaking';
-        this.pinnaFilter.frequency.value = this.pinnaFreq;
-        this.pinnaFilter.Q.value = this.pinnaQ;
+        this.pinnaFilter.frequency.value = 5500; // 5-6kHz 중심
+        this.pinnaFilter.Q.value = 2.0;
         this.pinnaFilter.gain.value = 0; // 초기값: 필터 없음
 
         // 머리 그림자 효과: 뒤쪽 소리는 고주파가 약간 감쇠
         this.headShadowFilter = this.audioContext.createBiquadFilter();
         this.headShadowFilter.type = 'highshelf';
-        this.headShadowFilter.frequency.value = this.headShadowFreq;
+        this.headShadowFilter.frequency.value = 3000;
         this.headShadowFilter.gain.value = 0; // 초기값: 필터 없음
-
-        // 고주파 차단 필터 (뒤쪽 소리의 고음 감쇠 강화)
-        this.hfCutoffFilter = this.audioContext.createBiquadFilter();
-        this.hfCutoffFilter.type = 'lowpass';
-        this.hfCutoffFilter.frequency.value = 20000; // 초기값: 필터 없음
-        this.hfCutoffFilter.Q.value = 0.7;
 
         // 5. Dry/Wet 믹스를 위한 Gain 노드들
         this.dryGain = this.audioContext.createGain();
@@ -415,8 +377,7 @@ class SpatialAudioEngine {
         // 앞/뒤 구분 필터 체인
         this.panner.connect(this.pinnaFilter);
         this.pinnaFilter.connect(this.headShadowFilter);
-        this.headShadowFilter.connect(this.hfCutoffFilter);
-        this.hfCutoffFilter.connect(this.lowpassFilter);
+        this.headShadowFilter.connect(this.lowpassFilter);
 
         // Dry path (직접음)
         this.lowpassFilter.connect(this.dryGain);
@@ -545,20 +506,6 @@ class SpatialAudioEngine {
             0.05
         );
 
-        // 고주파 차단 필터: 강도에 따라 cutoff 주파수 조절
-        if (this.hfCutoffFilter && this.hfCutoff < 20000) {
-            // intensity가 높을수록 cutoff가 낮아짐 (더 먹먹해짐)
-            // hfCutoff가 기준점, intensity에 따라 더 낮아짐
-            const cutoffFreq = this.hfCutoff + (20000 - this.hfCutoff) * (1 - Math.min(intensity, 1));
-            this.hfCutoffFilter.frequency.setTargetAtTime(
-                cutoffFreq,
-                this.audioContext.currentTime,
-                0.05
-            );
-        } else if (this.hfCutoffFilter) {
-            this.hfCutoffFilter.frequency.setTargetAtTime(20000, this.audioContext.currentTime, 0.05);
-        }
-
         // UI에 현재 적용 강도 표시
         const frontBackValueEl = document.getElementById('front-back-value');
         if (frontBackValueEl) {
@@ -615,34 +562,6 @@ class SpatialAudioEngine {
         const upperValue = this.angleIntensities[upperAngle];
 
         return lowerValue + (upperValue - lowerValue) * t;
-    }
-
-    // 필터 주파수 설정 메서드들
-    setPinnaFrequency(freq) {
-        this.pinnaFreq = freq;
-        if (this.pinnaFilter) {
-            this.pinnaFilter.frequency.setTargetAtTime(freq, this.audioContext.currentTime, 0.05);
-        }
-    }
-
-    setPinnaQ(q) {
-        this.pinnaQ = q;
-        if (this.pinnaFilter) {
-            this.pinnaFilter.Q.setTargetAtTime(q, this.audioContext.currentTime, 0.05);
-        }
-    }
-
-    setHeadShadowFrequency(freq) {
-        this.headShadowFreq = freq;
-        if (this.headShadowFilter) {
-            this.headShadowFilter.frequency.setTargetAtTime(freq, this.audioContext.currentTime, 0.05);
-        }
-    }
-
-    setHfCutoff(freq) {
-        this.hfCutoff = freq;
-        // hfCutoffFilter는 각도에 따라 동적으로 조절됨
-        this.updateFrontBackFilter();
     }
 
     // Reverb 설정 변경
