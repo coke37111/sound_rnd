@@ -43,8 +43,8 @@ class SpatialAudioEngine {
             a: false,
             s: false,
             d: false,
-            q: false,
-            e: false
+            plus: false,
+            minus: false
         };
 
         this.init();
@@ -172,6 +172,18 @@ class SpatialAudioEngine {
             return;
         }
 
+        // +/- 키 처리 (일반 키보드 및 키패드)
+        if (e.key === '+' || e.key === '=' || e.code === 'NumpadAdd') {
+            this.keys.plus = true;
+            this.highlightKey('+', true);
+            return;
+        }
+        if (e.key === '-' || e.key === '_' || e.code === 'NumpadSubtract') {
+            this.keys.minus = true;
+            this.highlightKey('-', true);
+            return;
+        }
+
         if (this.keys.hasOwnProperty(key)) {
             this.keys[key] = true;
             this.highlightKey(key, true);
@@ -180,6 +192,19 @@ class SpatialAudioEngine {
 
     handleKeyUp(e) {
         const key = e.key.toLowerCase();
+
+        // +/- 키 처리
+        if (e.key === '+' || e.key === '=' || e.code === 'NumpadAdd') {
+            this.keys.plus = false;
+            this.highlightKey('+', false);
+            return;
+        }
+        if (e.key === '-' || e.key === '_' || e.code === 'NumpadSubtract') {
+            this.keys.minus = false;
+            this.highlightKey('-', false);
+            return;
+        }
+
         if (this.keys.hasOwnProperty(key)) {
             this.keys[key] = false;
             this.highlightKey(key, false);
@@ -189,8 +214,10 @@ class SpatialAudioEngine {
     highlightKey(key, active) {
         const keyElements = document.querySelectorAll('.key');
         keyElements.forEach(el => {
-            if (el.textContent.toLowerCase() === key.toUpperCase() ||
-                (key === ' ' && el.textContent === 'Space')) {
+            const keyText = el.textContent;
+            if (keyText.toLowerCase() === key.toUpperCase() ||
+                keyText === key ||
+                (key === ' ' && keyText === 'Space')) {
                 if (active) {
                     el.classList.add('active');
                 } else {
@@ -278,9 +305,9 @@ class SpatialAudioEngine {
         if (this.keys.w) this.spherical.elevation += this.rotationSpeed;
         if (this.keys.s) this.spherical.elevation -= this.rotationSpeed;
 
-        // Q/E: 거리 조절 (선택적)
-        if (this.keys.q) this.spherical.radius -= this.radiusSpeed;
-        if (this.keys.e) this.spherical.radius += this.radiusSpeed;
+        // +/-: 거리 조절
+        if (this.keys.minus) this.spherical.radius -= this.radiusSpeed;
+        if (this.keys.plus) this.spherical.radius += this.radiusSpeed;
 
         // 방위각 범위 제한 (-π ~ π, 연속 회전)
         if (this.spherical.azimuth > Math.PI) this.spherical.azimuth -= Math.PI * 2;
