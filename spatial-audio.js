@@ -13,14 +13,29 @@ class SpatialAudioEngine {
         this.isPlaying = false;
         this.currentSoundType = 'sine';
 
-        // 소리 소스 위치 (3D 공간)
+        // 구면 좌표계 (Spherical Coordinates)
+        // azimuth: 방위각 (수평 회전, 0 = 정면, 라디안)
+        // elevation: 고도각 (수직 회전, 0 = 수평, 라디안)
+        // radius: 반지름 (거리, 고정값)
+        this.spherical = {
+            azimuth: 0,           // -π ~ π (A/D로 조절)
+            elevation: 0,         // -π/2 ~ π/2 (W/S로 조절)
+            radius: 5             // 고정 거리 (Q/E로 조절 가능)
+        };
+
+        // 직교 좌표 (구면 좌표에서 계산됨)
         this.soundPosition = { x: 0, y: 0, z: 5 };
 
-        // 리스너(플레이어) 위치
+        // 리스너(플레이어) 위치 (원점 고정)
         this.listenerPosition = { x: 0, y: 0, z: 0 };
 
-        // 이동 속도
-        this.moveSpeed = 0.15;
+        // 회전 속도 (라디안/프레임)
+        this.rotationSpeed = 0.03;
+
+        // 거리 조절 속도
+        this.radiusSpeed = 0.1;
+        this.minRadius = 1;
+        this.maxRadius = 15;
 
         // 키 입력 상태
         this.keys = {
@@ -30,12 +45,6 @@ class SpatialAudioEngine {
             d: false,
             q: false,
             e: false
-        };
-
-        // 공간 제한
-        this.bounds = {
-            min: -15,
-            max: 15
         };
 
         this.init();
@@ -260,21 +269,50 @@ class SpatialAudioEngine {
     }
 
     updateSoundPosition() {
-        // WASD + QE로 소리 소스 위치 업데이트
-        if (this.keys.w) this.soundPosition.z -= this.moveSpeed;
-        if (this.keys.s) this.soundPosition.z += this.moveSpeed;
-        if (this.keys.a) this.soundPosition.x -= this.moveSpeed;
-        if (this.keys.d) this.soundPosition.x += this.moveSpeed;
-        if (this.keys.q) this.soundPosition.y -= this.moveSpeed;
-        if (this.keys.e) this.soundPosition.y += this.moveSpeed;
+        // 구면 좌표 업데이트
+        // A/D: 방위각 (수평 회전) - 좌우로 회전
+        if (this.keys.a) this.spherical.azimuth -= this.rotationSpeed;
+        if (this.keys.d) this.spherical.azimuth += this.rotationSpeed;
 
-        // 경계 제한
-        this.soundPosition.x = Math.max(this.bounds.min, Math.min(this.bounds.max, this.soundPosition.x));
-        this.soundPosition.y = Math.max(this.bounds.min, Math.min(this.bounds.max, this.soundPosition.y));
-        this.soundPosition.z = Math.max(this.bounds.min, Math.min(this.bounds.max, this.soundPosition.z));
+        // W/S: 고도각 (수직 회전) - 위아래로 회전
+        if (this.keys.w) this.spherical.elevation += this.rotationSpeed;
+        if (this.keys.s) this.spherical.elevation -= this.rotationSpeed;
+
+        // Q/E: 거리 조절 (선택적)
+        if (this.keys.q) this.spherical.radius -= this.radiusSpeed;
+        if (this.keys.e) this.spherical.radius += this.radiusSpeed;
+
+        // 방위각 범위 제한 (-π ~ π, 연속 회전)
+        if (this.spherical.azimuth > Math.PI) this.spherical.azimuth -= Math.PI * 2;
+        if (this.spherical.azimuth < -Math.PI) this.spherical.azimuth += Math.PI * 2;
+
+        // 고도각 범위 제한 (-π/2 ~ π/2)
+        this.spherical.elevation = Math.max(-Math.PI / 2 + 0.01,
+            Math.min(Math.PI / 2 - 0.01, this.spherical.elevation));
+
+        // 거리 범위 제한
+        this.spherical.radius = Math.max(this.minRadius,
+            Math.min(this.maxRadius, this.spherical.radius));
+
+        // 구면 좌표 -> 직교 좌표 변환
+        this.sphericalToCartesian();
 
         this.updatePannerPosition();
         this.updateUI();
+    }
+
+    sphericalToCartesian() {
+        const r = this.spherical.radius;
+        const azimuth = this.spherical.azimuth;
+        const elevation = this.spherical.elevation;
+
+        // 구면 좌표를 직교 좌표로 변환
+        // x = r * cos(elevation) * sin(azimuth)
+        // y = r * sin(elevation)
+        // z = r * cos(elevation) * cos(azimuth)
+        this.soundPosition.x = r * Math.cos(elevation) * Math.sin(azimuth);
+        this.soundPosition.y = r * Math.sin(elevation);
+        this.soundPosition.z = r * Math.cos(elevation) * Math.cos(azimuth);
     }
 
     updatePannerPosition() {
@@ -337,13 +375,20 @@ class SpatialAudioEngine {
     updateUI() {
         const sp = this.soundPosition;
         const lp = this.listenerPosition;
+        const sph = this.spherical;
 
         document.getElementById('sound-coords').textContent =
             `(${sp.x.toFixed(1)}, ${sp.y.toFixed(1)}, ${sp.z.toFixed(1)})`;
         document.getElementById('listener-coords').textContent =
             `(${lp.x.toFixed(1)}, ${lp.y.toFixed(1)}, ${lp.z.toFixed(1)})`;
         document.getElementById('distance-value').textContent =
-            this.calculateDistance().toFixed(1);
+            sph.radius.toFixed(1);
+
+        // 구면 좌표 정보 업데이트
+        const azimuthDeg = (sph.azimuth * 180 / Math.PI).toFixed(0);
+        const elevationDeg = (sph.elevation * 180 / Math.PI).toFixed(0);
+        document.getElementById('spherical-coords').textContent =
+            `방위: ${azimuthDeg}° | 고도: ${elevationDeg}°`;
     }
 
     // Canvas 시각화
@@ -370,16 +415,16 @@ class SpatialAudioEngine {
         ctx.fillStyle = '#0a0a1a';
         ctx.fillRect(0, 0, width, height);
 
-        // 그리드 그리기
-        this.drawGrid(ctx, width, height);
-
-        // 좌표축 표시
-        this.drawAxes(ctx, width, height);
-
         // 중심점 (원점)
         const centerX = width / 2;
         const centerY = height / 2;
-        const scale = 20; // 1 단위 = 20 픽셀
+        const scale = 18; // 1 단위 = 18 픽셀
+
+        // 구체 그리기
+        this.drawSphere(ctx, centerX, centerY, scale);
+
+        // 좌표축 표시
+        this.drawAxes(ctx, width, height);
 
         // 리스너 그리기 (원점)
         this.drawListener(ctx, centerX, centerY);
@@ -392,39 +437,121 @@ class SpatialAudioEngine {
         // 연결선 그리기
         this.drawConnection(ctx, centerX, centerY, soundScreenX, soundScreenY);
 
-        // 높이 표시 (Y축)
-        this.drawHeightIndicator(ctx, soundScreenX, soundScreenY, this.soundPosition.y);
+        // 방향 표시
+        this.drawDirectionIndicators(ctx, width, height);
 
         // 뷰 라벨
         ctx.fillStyle = '#666';
         ctx.font = '14px Arial';
-        ctx.fillText('Top-Down View (X-Z Plane)', 10, height - 10);
-        ctx.fillText('Y(Height): ' + this.soundPosition.y.toFixed(1), width - 120, height - 10);
+        ctx.fillText('Top-Down View (구체 표면 위 이동)', 10, height - 10);
+
+        // 고도 표시
+        const elevationDeg = (this.spherical.elevation * 180 / Math.PI).toFixed(0);
+        ctx.fillText(`고도: ${elevationDeg}° (${this.soundPosition.y.toFixed(1)}m)`, width - 180, height - 10);
     }
 
-    drawGrid(ctx, width, height) {
-        const centerX = width / 2;
-        const centerY = height / 2;
-        const scale = 20;
+    drawSphere(ctx, centerX, centerY, scale) {
+        const radius = this.spherical.radius * scale;
 
+        // 구체 외곽선 (XZ 평면 단면)
+        ctx.strokeStyle = 'rgba(0, 217, 255, 0.3)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // 현재 고도에 따른 원 (수평 단면)
+        const elevation = this.spherical.elevation;
+        const horizontalRadius = radius * Math.cos(elevation);
+
+        ctx.strokeStyle = 'rgba(255, 230, 109, 0.4)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, horizontalRadius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // 구체 내부 그리드 (위도선 - 고도)
         ctx.strokeStyle = 'rgba(0, 217, 255, 0.1)';
         ctx.lineWidth = 1;
-
-        // 수직선
-        for (let x = centerX % scale; x < width; x += scale) {
+        for (let elev = -60; elev <= 60; elev += 30) {
+            const elevRad = elev * Math.PI / 180;
+            const r = radius * Math.cos(elevRad);
             ctx.beginPath();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, height);
+            ctx.arc(centerX, centerY, r, 0, Math.PI * 2);
             ctx.stroke();
         }
 
-        // 수평선
-        for (let y = centerY % scale; y < height; y += scale) {
+        // 경도선 (방위각)
+        for (let az = 0; az < 360; az += 45) {
+            const azRad = az * Math.PI / 180;
             ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(width, y);
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(
+                centerX + radius * Math.sin(azRad),
+                centerY - radius * Math.cos(azRad)
+            );
             ctx.stroke();
         }
+
+        // 방위각 레이블
+        ctx.fillStyle = 'rgba(0, 217, 255, 0.6)';
+        ctx.font = '11px Arial';
+        ctx.textAlign = 'center';
+
+        const labels = [
+            { angle: 0, text: '정면', offset: -15 },
+            { angle: 90, text: '우측', offset: 0 },
+            { angle: 180, text: '후면', offset: 15 },
+            { angle: -90, text: '좌측', offset: 0 }
+        ];
+
+        labels.forEach(label => {
+            const azRad = label.angle * Math.PI / 180;
+            const labelRadius = radius + 25;
+            const lx = centerX + labelRadius * Math.sin(azRad);
+            const ly = centerY - labelRadius * Math.cos(azRad) + label.offset;
+            ctx.fillText(label.text, lx, ly);
+        });
+
+        ctx.textAlign = 'left';
+    }
+
+    drawDirectionIndicators(ctx, width, height) {
+        const azimuthDeg = this.spherical.azimuth * 180 / Math.PI;
+        const elevationDeg = this.spherical.elevation * 180 / Math.PI;
+
+        // 방향 텍스트 결정
+        let horizontalDir = '';
+        let verticalDir = '';
+
+        if (azimuthDeg > -22.5 && azimuthDeg <= 22.5) horizontalDir = '정면';
+        else if (azimuthDeg > 22.5 && azimuthDeg <= 67.5) horizontalDir = '우측 앞';
+        else if (azimuthDeg > 67.5 && azimuthDeg <= 112.5) horizontalDir = '우측';
+        else if (azimuthDeg > 112.5 && azimuthDeg <= 157.5) horizontalDir = '우측 뒤';
+        else if (azimuthDeg > 157.5 || azimuthDeg <= -157.5) horizontalDir = '후면';
+        else if (azimuthDeg > -157.5 && azimuthDeg <= -112.5) horizontalDir = '좌측 뒤';
+        else if (azimuthDeg > -112.5 && azimuthDeg <= -67.5) horizontalDir = '좌측';
+        else if (azimuthDeg > -67.5 && azimuthDeg <= -22.5) horizontalDir = '좌측 앞';
+
+        if (elevationDeg > 30) verticalDir = '위';
+        else if (elevationDeg < -30) verticalDir = '아래';
+
+        const dirText = verticalDir ? `${horizontalDir} ${verticalDir}` : horizontalDir;
+
+        // 방향 표시 박스
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(width - 150, 15, 135, 35);
+        ctx.strokeStyle = 'rgba(0, 217, 255, 0.5)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(width - 150, 15, 135, 35);
+
+        ctx.fillStyle = '#00d9ff';
+        ctx.font = 'bold 16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(dirText, width - 82, 38);
+        ctx.textAlign = 'left';
     }
 
     drawAxes(ctx, width, height) {
@@ -568,34 +695,6 @@ class SpatialAudioEngine {
         ctx.textAlign = 'center';
         ctx.fillText(`${distance.toFixed(1)}m`, midX, midY - 10);
         ctx.textAlign = 'left';
-    }
-
-    drawHeightIndicator(ctx, x, y, height) {
-        if (Math.abs(height) < 0.1) return;
-
-        // 높이 표시 막대
-        const barHeight = height * 3;
-        const barX = x + 30;
-
-        ctx.strokeStyle = height > 0 ? '#4ecdc4' : '#ff6b6b';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(barX, y);
-        ctx.lineTo(barX, y - barHeight);
-        ctx.stroke();
-
-        // 높이 값
-        ctx.fillStyle = height > 0 ? '#4ecdc4' : '#ff6b6b';
-        ctx.font = '12px monospace';
-        ctx.fillText(`Y: ${height.toFixed(1)}`, barX + 5, y - barHeight / 2);
-
-        // 화살표 머리
-        const arrowDir = height > 0 ? -1 : 1;
-        ctx.beginPath();
-        ctx.moveTo(barX - 5, y - barHeight + arrowDir * 8);
-        ctx.lineTo(barX, y - barHeight);
-        ctx.lineTo(barX + 5, y - barHeight + arrowDir * 8);
-        ctx.stroke();
     }
 
     animate() {

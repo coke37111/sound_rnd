@@ -15,12 +15,16 @@
 
         <div id="controls-info">
             <div class="key-group">
-                <span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span>
-                <span class="label">XZ 평면 이동</span>
+                <span class="key">A</span><span class="key">D</span>
+                <span class="label">좌우 회전 (방위각)</span>
+            </div>
+            <div class="key-group">
+                <span class="key">W</span><span class="key">S</span>
+                <span class="label">위아래 회전 (고도)</span>
             </div>
             <div class="key-group">
                 <span class="key">Q</span><span class="key">E</span>
-                <span class="label">위/아래 이동</span>
+                <span class="label">거리 조절</span>
             </div>
             <div class="key-group">
                 <span class="key">Space</span>
@@ -37,9 +41,10 @@
             <div id="visualization">
                 <canvas id="scene-canvas"></canvas>
                 <div id="position-info">
+                    <div id="spherical-info"><span id="spherical-coords">방위: 0° | 고도: 0°</span></div>
                     <div id="sound-pos">소리 위치: <span id="sound-coords">(0, 0, 5)</span></div>
                     <div id="listener-pos">리스너 위치: <span id="listener-coords">(0, 0, 0)</span></div>
-                    <div id="distance">거리: <span id="distance-value">5.0</span>m</div>
+                    <div id="distance">거리 (반지름): <span id="distance-value">5.0</span>m</div>
                 </div>
             </div>
 

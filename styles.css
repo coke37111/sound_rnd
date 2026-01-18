@@ -146,6 +146,12 @@ header p {
     gap: 10px;
 }
 
+#spherical-coords {
+    color: #00d9ff;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
 #sound-coords {
     color: #ff6b6b;
 }
