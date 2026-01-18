@@ -1368,10 +1368,11 @@ class SpatialAudioEngine {
         ctx.font = '11px Arial';
         ctx.textAlign = 'center';
 
+        // 방위각 레이블 (캔버스 좌표계: 상단=+Z=후면, 하단=-Z=정면)
         const labels = [
-            { angle: 0, text: '정면', offset: -15 },
+            { angle: 0, text: '후면', offset: -15 },
             { angle: 90, text: '우측', offset: 0 },
-            { angle: 180, text: '후면', offset: 15 },
+            { angle: 180, text: '정면', offset: 15 },
             { angle: -90, text: '좌측', offset: 0 }
         ];
 
