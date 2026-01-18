@@ -27,6 +27,23 @@ class SpatialAudioEngine {
         this.airAbsorptionEnabled = true;
         this.airAbsorptionCoeff = 0.5;   // 공기 흡수 계수
 
+        // 고급 HRTF 설정
+        this.rolloffFactor = 1.0;        // 거리 감쇠율
+        this.refDistance = 1.0;          // 기준 거리
+        this.headWidth = 0.2;            // 머리 너비 (ITD 시뮬레이션)
+
+        // 고급 리버브 설정
+        this.earlyReflectionDelay = 0.02; // 초기 반사음 딜레이 (초)
+        this.reverbDecay = 2.0;          // 리버브 감쇠 시간
+        this.reverbDamping = 0.5;        // 고주파 감쇠
+
+        // 스테레오 강화
+        this.stereoWidth = 1.0;          // 스테레오 폭 (0~2)
+
+        // 초기 반사음 노드
+        this.earlyReflections = null;
+        this.earlyReflectionsGain = null;
+
         // 구면 좌표계 (Spherical Coordinates)
         // azimuth: 방위각 (수평 회전, 0 = 정면, 라디안)
         // elevation: 고도각 (수직 회전, 0 = 수평, 라디안)
@@ -129,6 +146,85 @@ class SpatialAudioEngine {
         document.getElementById('audio-file')?.addEventListener('change', (e) => {
             this.loadAudioFile(e.target.files[0]);
         });
+
+        // 고급 설정 컨트롤
+        document.getElementById('rolloff-factor')?.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            this.setRolloffFactor(value);
+            document.getElementById('rolloff-value').textContent = value.toFixed(1);
+        });
+
+        document.getElementById('ref-distance')?.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            this.setRefDistance(value);
+            document.getElementById('ref-dist-value').textContent = value.toFixed(1) + 'm';
+        });
+
+        document.getElementById('air-absorption-coeff')?.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            this.airAbsorptionCoeff = value;
+            this.updateDistanceFilter();
+            document.getElementById('air-coeff-value').textContent = value.toFixed(2);
+        });
+
+        document.getElementById('stereo-width')?.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            this.setStereoWidth(value);
+            document.getElementById('stereo-value').textContent = Math.round(value * 100) + '%';
+        });
+
+        document.getElementById('reverb-decay')?.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            this.reverbDecay = value;
+            this.createReverbImpulse(value, this.currentRoomSize || 1.0);
+            document.getElementById('decay-value').textContent = value.toFixed(1) + 's';
+        });
+
+        document.getElementById('reverb-damping')?.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            this.reverbDamping = value;
+            this.createReverbImpulse(this.reverbDecay, this.currentRoomSize || 1.0);
+            document.getElementById('damping-value').textContent = Math.round(value * 100) + '%';
+        });
+
+        document.getElementById('early-reflection')?.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            this.setEarlyReflectionDelay(value);
+            document.getElementById('early-ref-value').textContent = Math.round(value * 1000) + 'ms';
+        });
+    }
+
+    // 고급 설정 메서드들
+    setRolloffFactor(value) {
+        this.rolloffFactor = value;
+        if (this.panner) {
+            this.panner.rolloffFactor = value;
+        }
+    }
+
+    setRefDistance(value) {
+        this.refDistance = value;
+        if (this.panner) {
+            this.panner.refDistance = value;
+        }
+    }
+
+    setStereoWidth(value) {
+        this.stereoWidth = value;
+        // 스테레오 폭은 panner의 cone 설정으로 시뮬레이션
+        if (this.panner) {
+            // 좁은 스테레오: 더 집중된 소리
+            // 넓은 스테레오: 더 퍼진 소리
+            const coneInner = 360 * value;
+            this.panner.coneInnerAngle = Math.min(360, coneInner);
+        }
+    }
+
+    setEarlyReflectionDelay(value) {
+        this.earlyReflectionDelay = value;
+        if (this.earlyReflections) {
+            this.earlyReflections.delayTime.setTargetAtTime(value, this.audioContext.currentTime, 0.1);
+        }
     }
 
     // 오디오 파일 로드
@@ -193,7 +289,18 @@ class SpatialAudioEngine {
 
         // 2. Convolution Reverb (공간 반향)
         this.convolver = this.audioContext.createConvolver();
-        this.createReverbImpulse(2.0, 2.0); // decay time, room size
+        this.createReverbImpulse(this.reverbDecay, 1.0); // decay time, room size
+
+        // 3. 초기 반사음 (Early Reflections)
+        this.earlyReflections = this.audioContext.createDelay(0.5);
+        this.earlyReflections.delayTime.value = this.earlyReflectionDelay;
+        this.earlyReflectionsGain = this.audioContext.createGain();
+        this.earlyReflectionsGain.gain.value = 0.3;
+
+        // 초기 반사음용 필터 (약간 고주파 감쇠)
+        this.earlyReflectionsFilter = this.audioContext.createBiquadFilter();
+        this.earlyReflectionsFilter.type = 'lowpass';
+        this.earlyReflectionsFilter.frequency.value = 8000;
 
         // 3. Dry/Wet 믹스를 위한 Gain 노드들
         this.dryGain = this.audioContext.createGain();
@@ -207,18 +314,25 @@ class SpatialAudioEngine {
         this.updateListenerPosition();
 
         // === 오디오 그래프 연결 ===
-        // Source -> Panner -> LowpassFilter -> [Dry + Reverb] -> Gain -> Destination
+        // Source -> Panner -> LowpassFilter -> [Dry + Early Reflections + Reverb] -> Gain -> Destination
         //
-        // Panner -> LowpassFilter -> dryGain ---------> Gain -> Destination
-        //                        \-> Convolver -> reverbGain -/
+        //                                   /-> dryGain ----------------\
+        // Panner -> LowpassFilter -----------> earlyRef -> earlyGain ----> Gain -> Destination
+        //                                   \-> Convolver -> reverbGain -/
 
         this.panner.connect(this.lowpassFilter);
 
-        // Dry path
+        // Dry path (직접음)
         this.lowpassFilter.connect(this.dryGain);
         this.dryGain.connect(this.gainNode);
 
-        // Wet (Reverb) path
+        // Early Reflections path (초기 반사음)
+        this.lowpassFilter.connect(this.earlyReflections);
+        this.earlyReflections.connect(this.earlyReflectionsFilter);
+        this.earlyReflectionsFilter.connect(this.earlyReflectionsGain);
+        this.earlyReflectionsGain.connect(this.gainNode);
+
+        // Late Reverb path (후기 잔향)
         this.lowpassFilter.connect(this.convolver);
         this.convolver.connect(this.reverbGain);
         this.reverbGain.connect(this.gainNode);
@@ -234,9 +348,11 @@ class SpatialAudioEngine {
 
     // 임펄스 응답 생성 (합성 리버브)
     createReverbImpulse(decay = 2.0, roomSize = 2.0) {
+        this.currentRoomSize = roomSize;
         const sampleRate = this.audioContext.sampleRate;
         const length = sampleRate * decay;
         const impulse = this.audioContext.createBuffer(2, length, sampleRate);
+        const damping = this.reverbDamping || 0.5;
 
         for (let channel = 0; channel < 2; channel++) {
             const channelData = impulse.getChannelData(channel);
@@ -258,10 +374,15 @@ class SpatialAudioEngine {
                     }
                 }
 
-                // 고주파 감쇠 (시간에 따라 더 먹먹해짐)
-                const highFreqDamping = Math.exp(-t * 2);
+                // 고주파 감쇠 (시간에 따라 더 먹먹해짐) - damping 값으로 조절
+                const highFreqDamping = Math.exp(-t * (2 + damping * 4));
                 if (Math.random() > highFreqDamping) {
-                    sample *= 0.7;
+                    sample *= (1 - damping * 0.6);
+                }
+
+                // 채널별로 약간 다른 특성 (스테레오 폭)
+                if (channel === 1) {
+                    sample *= 0.95 + Math.random() * 0.1;
                 }
 
                 channelData[i] = sample;
