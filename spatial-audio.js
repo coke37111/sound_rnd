@@ -109,8 +109,15 @@ class SpatialAudioEngine {
     }
 
     init() {
+        // 저장된 설정 불러오기
+        this.loadSettings();
+
         this.setupEventListeners();
         this.setupCanvas();
+
+        // UI 슬라이더를 불러온 설정값으로 업데이트
+        this.updateBandIntensityUI();
+
         this.animate();
     }
 
@@ -560,7 +567,57 @@ class SpatialAudioEngine {
         if (this.bandIntensities[band]) {
             this.bandIntensities[band][angle] = value;
             this.updateFrontBackFilter();
+            this.saveSettings();
         }
+    }
+
+    // localStorage에 설정 저장
+    saveSettings() {
+        const settings = {
+            bandIntensities: this.bandIntensities
+        };
+        try {
+            localStorage.setItem('spatialAudioSettings', JSON.stringify(settings));
+        } catch (e) {
+            console.warn('설정 저장 실패:', e);
+        }
+    }
+
+    // localStorage에서 설정 불러오기
+    loadSettings() {
+        try {
+            const saved = localStorage.getItem('spatialAudioSettings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                if (settings.bandIntensities) {
+                    this.bandIntensities = settings.bandIntensities;
+                    return true;
+                }
+            }
+        } catch (e) {
+            console.warn('설정 불러오기 실패:', e);
+        }
+        return false;
+    }
+
+    // UI 슬라이더 값을 현재 bandIntensities로 업데이트
+    updateBandIntensityUI() {
+        const bands = ['low', 'mid', 'highMid', 'high'];
+        const angles = [0, 30, 60, 90, 120, 150, 180];
+
+        bands.forEach(band => {
+            angles.forEach(angle => {
+                const slider = document.getElementById(`${band}-${angle}`);
+                const valueEl = document.getElementById(`${band}-${angle}-value`);
+                if (slider && this.bandIntensities[band]) {
+                    const value = this.bandIntensities[band][angle] || 0;
+                    slider.value = value;
+                    if (valueEl) {
+                        valueEl.textContent = Math.round(value * 100) + '%';
+                    }
+                }
+            });
+        });
     }
 
     // 특정 대역의 각도에 따른 강도 보간
