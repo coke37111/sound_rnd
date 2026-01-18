@@ -128,72 +128,71 @@
                         </label>
                         <span class="filter-info">뒤: <span id="back-level">0%</span></span>
                     </div>
-                    <div class="control-group angle-intensity-group">
-                        <label>각도별 효과 강도 (귀 모양 보정)</label>
-                        <div class="angle-sliders">
-                            <div class="angle-slider">
-                                <span class="angle-label">0°</span>
-                                <input type="range" id="intensity-0" min="0" max="3" step="0.1" value="0">
-                                <span class="angle-value" id="intensity-0-value">0%</span>
-                            </div>
-                            <div class="angle-slider">
-                                <span class="angle-label">30°</span>
-                                <input type="range" id="intensity-30" min="0" max="3" step="0.1" value="0">
-                                <span class="angle-value" id="intensity-30-value">0%</span>
-                            </div>
-                            <div class="angle-slider">
-                                <span class="angle-label">60°</span>
-                                <input type="range" id="intensity-60" min="0" max="3" step="0.1" value="0">
-                                <span class="angle-value" id="intensity-60-value">0%</span>
-                            </div>
-                            <div class="angle-slider">
-                                <span class="angle-label">90°</span>
-                                <input type="range" id="intensity-90" min="0" max="3" step="0.1" value="0.5">
-                                <span class="angle-value" id="intensity-90-value">50%</span>
-                            </div>
-                            <div class="angle-slider">
-                                <span class="angle-label">120°</span>
-                                <input type="range" id="intensity-120" min="0" max="3" step="0.1" value="1">
-                                <span class="angle-value" id="intensity-120-value">100%</span>
-                            </div>
-                            <div class="angle-slider">
-                                <span class="angle-label">150°</span>
-                                <input type="range" id="intensity-150" min="0" max="3" step="0.1" value="1.5">
-                                <span class="angle-value" id="intensity-150-value">150%</span>
-                            </div>
-                            <div class="angle-slider">
-                                <span class="angle-label">180°</span>
-                                <input type="range" id="intensity-180" min="0" max="3" step="0.1" value="2">
-                                <span class="angle-value" id="intensity-180-value">200%</span>
+                    <div class="control-group freq-band-controls">
+                        <label>주파수 대역별 각도 강도 설정</label>
+
+                        <!-- 대역 선택 탭 -->
+                        <div class="band-tabs">
+                            <button class="band-tab active" data-band="low">저음<br><small>(200-800Hz)</small></button>
+                            <button class="band-tab" data-band="mid">중음<br><small>(800-3kHz)</small></button>
+                            <button class="band-tab" data-band="highMid">중고음<br><small>(3k-8kHz)</small></button>
+                            <button class="band-tab" data-band="high">고음<br><small>(8k-16kHz)</small></button>
+                        </div>
+
+                        <!-- 저음 대역 -->
+                        <div class="band-panel active" id="band-low">
+                            <div class="angle-sliders">
+                                <div class="angle-slider"><span class="angle-label">0°</span><input type="range" id="low-0" min="0" max="3" step="0.1" value="0"><span class="angle-value" id="low-0-value">0%</span></div>
+                                <div class="angle-slider"><span class="angle-label">30°</span><input type="range" id="low-30" min="0" max="3" step="0.1" value="0"><span class="angle-value" id="low-30-value">0%</span></div>
+                                <div class="angle-slider"><span class="angle-label">60°</span><input type="range" id="low-60" min="0" max="3" step="0.1" value="0"><span class="angle-value" id="low-60-value">0%</span></div>
+                                <div class="angle-slider"><span class="angle-label">90°</span><input type="range" id="low-90" min="0" max="3" step="0.1" value="0"><span class="angle-value" id="low-90-value">0%</span></div>
+                                <div class="angle-slider"><span class="angle-label">120°</span><input type="range" id="low-120" min="0" max="3" step="0.1" value="0"><span class="angle-value" id="low-120-value">0%</span></div>
+                                <div class="angle-slider"><span class="angle-label">150°</span><input type="range" id="low-150" min="0" max="3" step="0.1" value="0"><span class="angle-value" id="low-150-value">0%</span></div>
+                                <div class="angle-slider"><span class="angle-label">180°</span><input type="range" id="low-180" min="0" max="3" step="0.1" value="0"><span class="angle-value" id="low-180-value">0%</span></div>
                             </div>
                         </div>
+
+                        <!-- 중음 대역 -->
+                        <div class="band-panel" id="band-mid">
+                            <div class="angle-sliders">
+                                <div class="angle-slider"><span class="angle-label">0°</span><input type="range" id="mid-0" min="0" max="3" step="0.1" value="0"><span class="angle-value" id="mid-0-value">0%</span></div>
+                                <div class="angle-slider"><span class="angle-label">30°</span><input type="range" id="mid-30" min="0" max="3" step="0.1" value="0"><span class="angle-value" id="mid-30-value">0%</span></div>
+                                <div class="angle-slider"><span class="angle-label">60°</span><input type="range" id="mid-60" min="0" max="3" step="0.1" value="0"><span class="angle-value" id="mid-60-value">0%</span></div>
+                                <div class="angle-slider"><span class="angle-label">90°</span><input type="range" id="mid-90" min="0" max="3" step="0.1" value="0.3"><span class="angle-value" id="mid-90-value">30%</span></div>
+                                <div class="angle-slider"><span class="angle-label">120°</span><input type="range" id="mid-120" min="0" max="3" step="0.1" value="0.6"><span class="angle-value" id="mid-120-value">60%</span></div>
+                                <div class="angle-slider"><span class="angle-label">150°</span><input type="range" id="mid-150" min="0" max="3" step="0.1" value="0.8"><span class="angle-value" id="mid-150-value">80%</span></div>
+                                <div class="angle-slider"><span class="angle-label">180°</span><input type="range" id="mid-180" min="0" max="3" step="0.1" value="1"><span class="angle-value" id="mid-180-value">100%</span></div>
+                            </div>
+                        </div>
+
+                        <!-- 중고음 대역 -->
+                        <div class="band-panel" id="band-highMid">
+                            <div class="angle-sliders">
+                                <div class="angle-slider"><span class="angle-label">0°</span><input type="range" id="highMid-0" min="0" max="3" step="0.1" value="0"><span class="angle-value" id="highMid-0-value">0%</span></div>
+                                <div class="angle-slider"><span class="angle-label">30°</span><input type="range" id="highMid-30" min="0" max="3" step="0.1" value="0"><span class="angle-value" id="highMid-30-value">0%</span></div>
+                                <div class="angle-slider"><span class="angle-label">60°</span><input type="range" id="highMid-60" min="0" max="3" step="0.1" value="0.2"><span class="angle-value" id="highMid-60-value">20%</span></div>
+                                <div class="angle-slider"><span class="angle-label">90°</span><input type="range" id="highMid-90" min="0" max="3" step="0.1" value="0.5"><span class="angle-value" id="highMid-90-value">50%</span></div>
+                                <div class="angle-slider"><span class="angle-label">120°</span><input type="range" id="highMid-120" min="0" max="3" step="0.1" value="1"><span class="angle-value" id="highMid-120-value">100%</span></div>
+                                <div class="angle-slider"><span class="angle-label">150°</span><input type="range" id="highMid-150" min="0" max="3" step="0.1" value="1.5"><span class="angle-value" id="highMid-150-value">150%</span></div>
+                                <div class="angle-slider"><span class="angle-label">180°</span><input type="range" id="highMid-180" min="0" max="3" step="0.1" value="2"><span class="angle-value" id="highMid-180-value">200%</span></div>
+                            </div>
+                        </div>
+
+                        <!-- 고음 대역 -->
+                        <div class="band-panel" id="band-high">
+                            <div class="angle-sliders">
+                                <div class="angle-slider"><span class="angle-label">0°</span><input type="range" id="high-0" min="0" max="3" step="0.1" value="0"><span class="angle-value" id="high-0-value">0%</span></div>
+                                <div class="angle-slider"><span class="angle-label">30°</span><input type="range" id="high-30" min="0" max="3" step="0.1" value="0"><span class="angle-value" id="high-30-value">0%</span></div>
+                                <div class="angle-slider"><span class="angle-label">60°</span><input type="range" id="high-60" min="0" max="3" step="0.1" value="0.3"><span class="angle-value" id="high-60-value">30%</span></div>
+                                <div class="angle-slider"><span class="angle-label">90°</span><input type="range" id="high-90" min="0" max="3" step="0.1" value="0.7"><span class="angle-value" id="high-90-value">70%</span></div>
+                                <div class="angle-slider"><span class="angle-label">120°</span><input type="range" id="high-120" min="0" max="3" step="0.1" value="1.2"><span class="angle-value" id="high-120-value">120%</span></div>
+                                <div class="angle-slider"><span class="angle-label">150°</span><input type="range" id="high-150" min="0" max="3" step="0.1" value="2"><span class="angle-value" id="high-150-value">200%</span></div>
+                                <div class="angle-slider"><span class="angle-label">180°</span><input type="range" id="high-180" min="0" max="3" step="0.1" value="2.5"><span class="angle-value" id="high-180-value">250%</span></div>
+                            </div>
+                        </div>
+
                         <div class="current-intensity">
-                            현재 적용 강도: <span id="front-back-value">0%</span>
-                        </div>
-                    </div>
-                    <div class="control-group filter-freq-group">
-                        <label>필터 주파수 설정</label>
-                        <div class="filter-freq-controls">
-                            <div class="freq-control">
-                                <span>Pinna 중심 주파수</span>
-                                <input type="range" id="pinna-freq" min="2000" max="10000" step="100" value="5500">
-                                <span id="pinna-freq-value">5500 Hz</span>
-                            </div>
-                            <div class="freq-control">
-                                <span>Pinna Q (대역폭)</span>
-                                <input type="range" id="pinna-q" min="0.5" max="5" step="0.1" value="2">
-                                <span id="pinna-q-value">2.0</span>
-                            </div>
-                            <div class="freq-control">
-                                <span>Head Shadow 주파수</span>
-                                <input type="range" id="head-shadow-freq" min="1000" max="8000" step="100" value="3000">
-                                <span id="head-shadow-freq-value">3000 Hz</span>
-                            </div>
-                            <div class="freq-control">
-                                <span>고주파 차단 (LPF)</span>
-                                <input type="range" id="hf-cutoff" min="4000" max="20000" step="500" value="20000">
-                                <span id="hf-cutoff-value">OFF</span>
-                            </div>
+                            현재 강도 - 저: <span id="low-intensity">0%</span> | 중: <span id="mid-intensity">0%</span> | 중고: <span id="highMid-intensity">0%</span> | 고: <span id="high-intensity">0%</span>
                         </div>
                     </div>
                 </div>
