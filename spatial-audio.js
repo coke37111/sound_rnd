@@ -46,6 +46,7 @@ class SpatialAudioEngine {
 
         // 앞/뒤 구분을 위한 필터 (Front-Back Distinction)
         this.frontBackFilterEnabled = true;
+        this.frontBackIntensity = 1.0;    // 앞/뒤 효과 강도 (0~2)
         this.pinnaFilter = null;          // 귓바퀴 효과 (5-6kHz notch)
         this.headShadowFilter = null;     // 머리 그림자 효과
 
@@ -149,6 +150,12 @@ class SpatialAudioEngine {
 
         document.getElementById('front-back-filter')?.addEventListener('change', (e) => {
             this.setFrontBackFilterEnabled(e.target.checked);
+        });
+
+        document.getElementById('front-back-intensity')?.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            this.setFrontBackIntensity(value);
+            document.getElementById('front-back-value').textContent = Math.round(value * 100) + '%';
         });
 
         // 오디오 파일 업로드
@@ -476,8 +483,8 @@ class SpatialAudioEngine {
         }
 
         // 귓바퀴(pinna) 효과: 뒤쪽 소리는 5-6kHz 대역 감쇠
-        // 뒤쪽일수록 더 강한 notch (-12dB까지)
-        const pinnaGain = -12 * backness;
+        // 뒤쪽일수록 더 강한 notch (-12dB까지, intensity로 조절)
+        const pinnaGain = -12 * backness * this.frontBackIntensity;
         this.pinnaFilter.gain.setTargetAtTime(
             pinnaGain,
             this.audioContext.currentTime,
@@ -485,8 +492,8 @@ class SpatialAudioEngine {
         );
 
         // 머리 그림자 효과: 뒤쪽 소리는 고주파 감쇠
-        // 뒤쪽일수록 더 강한 감쇠 (-8dB까지)
-        const headShadowGain = -8 * backness;
+        // 뒤쪽일수록 더 강한 감쇠 (-8dB까지, intensity로 조절)
+        const headShadowGain = -8 * backness * this.frontBackIntensity;
         this.headShadowFilter.gain.setTargetAtTime(
             headShadowGain,
             this.audioContext.currentTime,
@@ -507,6 +514,12 @@ class SpatialAudioEngine {
         } else {
             this.updateFrontBackFilter();
         }
+    }
+
+    // 앞/뒤 효과 강도 설정
+    setFrontBackIntensity(value) {
+        this.frontBackIntensity = value;
+        this.updateFrontBackFilter();
     }
 
     // Reverb 설정 변경
