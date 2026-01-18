@@ -918,8 +918,9 @@ class SpatialAudioEngine {
     updateSoundPosition() {
         // 구면 좌표 업데이트
         // A/D: 방위각 (수평 회전) - 좌우로 회전
-        if (this.keys.a) this.spherical.azimuth -= this.rotationSpeed;
-        if (this.keys.d) this.spherical.azimuth += this.rotationSpeed;
+        // 캔버스에서 D=우측, A=좌측이 되도록 방향 조정
+        if (this.keys.a) this.spherical.azimuth += this.rotationSpeed;
+        if (this.keys.d) this.spherical.azimuth -= this.rotationSpeed;
 
         // W/S: 고도각 (수직 회전) - 위아래로 회전
         if (this.keys.w) this.spherical.elevation += this.rotationSpeed;
