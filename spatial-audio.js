@@ -1115,8 +1115,9 @@ class SpatialAudioEngine {
         this.drawSphere(ctx, topDownCenterX, topDownCenterY, scale);
         this.drawListener(ctx, topDownCenterX, topDownCenterY);
 
+        // 정면(-Z)이 위쪽에 오도록 Y축 반전
         const soundScreenX = topDownCenterX + this.soundPosition.x * scale;
-        const soundScreenY = topDownCenterY - this.soundPosition.z * scale;
+        const soundScreenY = topDownCenterY + this.soundPosition.z * scale;
         this.drawSoundSource(ctx, soundScreenX, soundScreenY, this.soundPosition.y);
         this.drawConnection(ctx, topDownCenterX, topDownCenterY, soundScreenX, soundScreenY);
 
@@ -1369,11 +1370,11 @@ class SpatialAudioEngine {
         ctx.font = '11px Arial';
         ctx.textAlign = 'center';
 
-        // 방위각 레이블 (캔버스 좌표계: 상단=+Z=후면, 하단=-Z=정면)
+        // 방위각 레이블 (캔버스 좌표계: 상단=-Z=정면, 하단=+Z=후면)
         const labels = [
-            { angle: 0, text: '후면', offset: -15 },
+            { angle: 0, text: '정면', offset: -15 },
             { angle: 90, text: '우측', offset: 0 },
-            { angle: 180, text: '정면', offset: 15 },
+            { angle: 180, text: '후면', offset: 15 },
             { angle: -90, text: '좌측', offset: 0 }
         ];
 
@@ -1494,26 +1495,26 @@ class SpatialAudioEngine {
         ctx.arc(x + 18, y, 5, 0, Math.PI * 2);
         ctx.fill();
 
-        // 바라보는 방향 표시 (앞쪽 = -Z = 캔버스 아래쪽)
+        // 바라보는 방향 표시 (앞쪽 = -Z = 캔버스 위쪽)
         ctx.strokeStyle = '#4ecdc4';
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(x, y);
-        ctx.lineTo(x, y + 30);
+        ctx.lineTo(x, y - 30);
         ctx.stroke();
 
-        // 화살표 (아래쪽을 향함)
+        // 화살표 (위쪽을 향함)
         ctx.beginPath();
-        ctx.moveTo(x - 8, y + 22);
-        ctx.lineTo(x, y + 35);
-        ctx.lineTo(x + 8, y + 22);
+        ctx.moveTo(x - 8, y - 22);
+        ctx.lineTo(x, y - 35);
+        ctx.lineTo(x + 8, y - 22);
         ctx.stroke();
 
         // 라벨
         ctx.fillStyle = '#4ecdc4';
         ctx.font = 'bold 12px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('Listener', x, y - 25);
+        ctx.fillText('Listener', x, y + 35);
         ctx.textAlign = 'left';
     }
 
