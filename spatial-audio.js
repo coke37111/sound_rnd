@@ -1207,8 +1207,8 @@ class SpatialAudioEngine {
         ctx.font = '11px Arial';
         ctx.fillText('Side View (측면)', x + 10, y + 20);
         ctx.fillStyle = 'rgba(100, 255, 100, 0.6)';
-        ctx.fillText('← 뒤', x + 10, centerY - 5);
-        ctx.fillText('앞 →', x + w - 35, centerY - 5);
+        ctx.fillText('← 앞', x + 10, centerY - 5);
+        ctx.fillText('뒤 →', x + w - 35, centerY - 5);
         ctx.fillStyle = 'rgba(100, 100, 255, 0.6)';
         ctx.fillText('위', centerX + 5, y + 20);
         ctx.fillText('아래', centerX + 5, y + h - 10);
@@ -1255,9 +1255,10 @@ class SpatialAudioEngine {
         const elevation = this.spherical.elevation;
 
         // 2D 레이더에서의 위치 (azimuth로 방향, elevation으로 중심에서의 거리 표현)
+        // 좌표계 변환: azimuth=π(정면)이 위쪽, azimuth=0(후면)이 아래쪽에 표시
         const distFromCenter = indicatorRadius * (1 - Math.abs(Math.sin(elevation)) * 0.7);
         const soundIndicatorX = centerX + Math.sin(azimuth) * distFromCenter;
-        const soundIndicatorY = centerY - Math.cos(azimuth) * distFromCenter;
+        const soundIndicatorY = centerY + Math.cos(azimuth) * distFromCenter;
 
         // 소리 방향 선
         ctx.strokeStyle = 'rgba(255, 107, 107, 0.6)';
@@ -1493,26 +1494,26 @@ class SpatialAudioEngine {
         ctx.arc(x + 18, y, 5, 0, Math.PI * 2);
         ctx.fill();
 
-        // 바라보는 방향 표시 (앞쪽 = -Z)
+        // 바라보는 방향 표시 (앞쪽 = -Z = 캔버스 아래쪽)
         ctx.strokeStyle = '#4ecdc4';
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(x, y);
-        ctx.lineTo(x, y - 30);
+        ctx.lineTo(x, y + 30);
         ctx.stroke();
 
-        // 화살표
+        // 화살표 (아래쪽을 향함)
         ctx.beginPath();
-        ctx.moveTo(x - 8, y - 22);
-        ctx.lineTo(x, y - 35);
-        ctx.lineTo(x + 8, y - 22);
+        ctx.moveTo(x - 8, y + 22);
+        ctx.lineTo(x, y + 35);
+        ctx.lineTo(x + 8, y + 22);
         ctx.stroke();
 
         // 라벨
         ctx.fillStyle = '#4ecdc4';
         ctx.font = 'bold 12px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('Listener', x, y + 35);
+        ctx.fillText('Listener', x, y - 25);
         ctx.textAlign = 'left';
     }
 
