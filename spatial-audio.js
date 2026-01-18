@@ -512,8 +512,12 @@ class SpatialAudioEngine {
 
         const azimuth = this.spherical.azimuth;
 
-        // azimuth를 도(degree)로 변환 (0~180)
-        const azimuthDeg = Math.abs(azimuth * 180 / Math.PI);
+        // azimuth를 도(degree)로 변환
+        // 좌표계: azimuth=0은 +Z(리스너 뒤쪽), azimuth=π는 -Z(리스너 앞쪽)
+        // UI: 0°=앞(효과없음), 180°=뒤(최대효과)
+        // 따라서 반전 필요: 실제 뒤쪽(azimuth=0)일 때 180°로 조회
+        const rawAngle = Math.abs(azimuth * 180 / Math.PI);
+        const azimuthDeg = 180 - rawAngle;
 
         // 각 대역별로 보간된 강도 계산 및 필터 적용
         const bands = ['low', 'mid', 'highMid', 'high'];
