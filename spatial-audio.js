@@ -192,6 +192,18 @@ class SpatialAudioEngine {
             this.setEarlyReflectionDelay(value);
             document.getElementById('early-ref-value').textContent = Math.round(value * 1000) + 'ms';
         });
+
+        document.getElementById('early-reflection-gain')?.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            this.setEarlyReflectionGain(value);
+            document.getElementById('early-gain-value').textContent = Math.round(value * 100) + '%';
+        });
+    }
+
+    setEarlyReflectionGain(value) {
+        if (this.earlyReflectionsGain) {
+            this.earlyReflectionsGain.gain.setTargetAtTime(value, this.audioContext.currentTime, 0.1);
+        }
     }
 
     // 고급 설정 메서드들
