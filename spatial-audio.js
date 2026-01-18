@@ -44,6 +44,11 @@ class SpatialAudioEngine {
         this.earlyReflections = null;
         this.earlyReflectionsGain = null;
 
+        // 앞/뒤 구분을 위한 필터 (Front-Back Distinction)
+        this.frontBackFilterEnabled = true;
+        this.pinnaFilter = null;          // 귓바퀴 효과 (5-6kHz notch)
+        this.headShadowFilter = null;     // 머리 그림자 효과
+
         // 구면 좌표계 (Spherical Coordinates)
         // azimuth: 방위각 (수평 회전, 0 = 정면, 라디안)
         // elevation: 고도각 (수직 회전, 0 = 수평, 라디안)
@@ -140,6 +145,10 @@ class SpatialAudioEngine {
 
         document.getElementById('air-absorption')?.addEventListener('change', (e) => {
             this.setAirAbsorptionEnabled(e.target.checked);
+        });
+
+        document.getElementById('front-back-filter')?.addEventListener('change', (e) => {
+            this.setFrontBackFilterEnabled(e.target.checked);
         });
 
         // 오디오 파일 업로드
@@ -314,7 +323,21 @@ class SpatialAudioEngine {
         this.earlyReflectionsFilter.type = 'lowpass';
         this.earlyReflectionsFilter.frequency.value = 8000;
 
-        // 3. Dry/Wet 믹스를 위한 Gain 노드들
+        // 4. 앞/뒤 구분 필터 (Front-Back Distinction)
+        // 귓바퀴(pinna) 효과: 뒤쪽 소리는 5-6kHz 대역이 감쇠됨
+        this.pinnaFilter = this.audioContext.createBiquadFilter();
+        this.pinnaFilter.type = 'peaking';
+        this.pinnaFilter.frequency.value = 5500; // 5-6kHz 중심
+        this.pinnaFilter.Q.value = 2.0;
+        this.pinnaFilter.gain.value = 0; // 초기값: 필터 없음
+
+        // 머리 그림자 효과: 뒤쪽 소리는 고주파가 약간 감쇠
+        this.headShadowFilter = this.audioContext.createBiquadFilter();
+        this.headShadowFilter.type = 'highshelf';
+        this.headShadowFilter.frequency.value = 3000;
+        this.headShadowFilter.gain.value = 0; // 초기값: 필터 없음
+
+        // 5. Dry/Wet 믹스를 위한 Gain 노드들
         this.dryGain = this.audioContext.createGain();
         this.dryGain.gain.value = 1 - this.reverbAmount;
 
@@ -326,13 +349,16 @@ class SpatialAudioEngine {
         this.updateListenerPosition();
 
         // === 오디오 그래프 연결 ===
-        // Source -> Panner -> LowpassFilter -> [Dry + Early Reflections + Reverb] -> Gain -> Destination
+        // Source -> Panner -> FrontBackFilters -> LowpassFilter -> [Dry + Early Reflections + Reverb] -> Gain -> Destination
         //
-        //                                   /-> dryGain ----------------\
-        // Panner -> LowpassFilter -----------> earlyRef -> earlyGain ----> Gain -> Destination
-        //                                   \-> Convolver -> reverbGain -/
+        //                                                       /-> dryGain ----------------\
+        // Panner -> pinnaFilter -> headShadow -> LowpassFilter --> earlyRef -> earlyGain ----> Gain -> Destination
+        //                                                       \-> Convolver -> reverbGain -/
 
-        this.panner.connect(this.lowpassFilter);
+        // 앞/뒤 구분 필터 체인
+        this.panner.connect(this.pinnaFilter);
+        this.pinnaFilter.connect(this.headShadowFilter);
+        this.headShadowFilter.connect(this.lowpassFilter);
 
         // Dry path (직접음)
         this.lowpassFilter.connect(this.dryGain);
@@ -427,6 +453,60 @@ class SpatialAudioEngine {
             this.audioContext.currentTime,
             0.1
         );
+    }
+
+    // 앞/뒤 구분 필터 업데이트 (Front-Back Distinction)
+    updateFrontBackFilter() {
+        if (!this.pinnaFilter || !this.headShadowFilter || !this.frontBackFilterEnabled) {
+            return;
+        }
+
+        const azimuth = this.spherical.azimuth;
+
+        // azimuth: 0 = 정면, ±π = 후면
+        // |azimuth| > π/2 이면 뒤쪽
+        const absAzimuth = Math.abs(azimuth);
+
+        // 뒤쪽 정도 계산 (0 = 정면, 1 = 완전 후면)
+        // π/2 (90도) 이후부터 뒤로 인식
+        let backness = 0;
+        if (absAzimuth > Math.PI / 2) {
+            backness = (absAzimuth - Math.PI / 2) / (Math.PI / 2);
+            backness = Math.min(1, backness);
+        }
+
+        // 귓바퀴(pinna) 효과: 뒤쪽 소리는 5-6kHz 대역 감쇠
+        // 뒤쪽일수록 더 강한 notch (-12dB까지)
+        const pinnaGain = -12 * backness;
+        this.pinnaFilter.gain.setTargetAtTime(
+            pinnaGain,
+            this.audioContext.currentTime,
+            0.05
+        );
+
+        // 머리 그림자 효과: 뒤쪽 소리는 고주파 감쇠
+        // 뒤쪽일수록 더 강한 감쇠 (-8dB까지)
+        const headShadowGain = -8 * backness;
+        this.headShadowFilter.gain.setTargetAtTime(
+            headShadowGain,
+            this.audioContext.currentTime,
+            0.05
+        );
+    }
+
+    // 앞/뒤 필터 활성화/비활성화
+    setFrontBackFilterEnabled(enabled) {
+        this.frontBackFilterEnabled = enabled;
+        if (!enabled) {
+            if (this.pinnaFilter) {
+                this.pinnaFilter.gain.setTargetAtTime(0, this.audioContext.currentTime, 0.1);
+            }
+            if (this.headShadowFilter) {
+                this.headShadowFilter.gain.setTargetAtTime(0, this.audioContext.currentTime, 0.1);
+            }
+        } else {
+            this.updateFrontBackFilter();
+        }
     }
 
     // Reverb 설정 변경
@@ -721,6 +801,7 @@ class SpatialAudioEngine {
 
         this.updatePannerPosition();
         this.updateDistanceFilter(); // 거리에 따른 필터 업데이트
+        this.updateFrontBackFilter(); // 앞/뒤 구분 필터 업데이트
         this.updateUI();
     }
 
@@ -818,6 +899,18 @@ class SpatialAudioEngine {
             const filterFreq = this.lowpassFilter.frequency.value;
             document.getElementById('filter-freq').textContent =
                 filterFreq > 10000 ? '없음' : Math.round(filterFreq) + ' Hz';
+        }
+
+        // 앞/뒤 레벨 업데이트
+        const backLevelEl = document.getElementById('back-level');
+        if (backLevelEl) {
+            const absAzimuth = Math.abs(sph.azimuth);
+            let backness = 0;
+            if (absAzimuth > Math.PI / 2) {
+                backness = (absAzimuth - Math.PI / 2) / (Math.PI / 2);
+                backness = Math.min(1, backness);
+            }
+            backLevelEl.textContent = Math.round(backness * 100) + '%';
         }
     }
 
