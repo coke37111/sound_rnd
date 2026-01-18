@@ -448,7 +448,9 @@ class SpatialAudioEngine {
     resizeCanvas() {
         const rect = this.canvas.parentElement.getBoundingClientRect();
         this.canvas.width = rect.width;
-        this.canvas.height = 500;
+        // 화면 높이에 맞게 조정 (최소 400, 최대 600)
+        const viewportHeight = window.innerHeight;
+        this.canvas.height = Math.min(600, Math.max(400, viewportHeight * 0.5));
     }
 
     drawScene() {
@@ -480,7 +482,10 @@ class SpatialAudioEngine {
         // === Top-Down View (왼쪽) ===
         const topDownCenterX = topDownWidth / 2;
         const topDownCenterY = height / 2;
-        const scale = 16;
+
+        // 동적 스케일 계산 (뷰 크기에 맞게 자동 조정)
+        const maxViewSize = Math.min(topDownWidth, height) * 0.8;
+        const scale = maxViewSize / (this.maxRadius * 2 + 4);
 
         this.drawSphere(ctx, topDownCenterX, topDownCenterY, scale);
         this.drawListener(ctx, topDownCenterX, topDownCenterY);
