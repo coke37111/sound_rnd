@@ -171,6 +171,31 @@
                             현재 적용 강도: <span id="front-back-value">0%</span>
                         </div>
                     </div>
+                    <div class="control-group filter-freq-group">
+                        <label>필터 주파수 설정</label>
+                        <div class="filter-freq-controls">
+                            <div class="freq-control">
+                                <span>Pinna 중심 주파수</span>
+                                <input type="range" id="pinna-freq" min="2000" max="10000" step="100" value="5500">
+                                <span id="pinna-freq-value">5500 Hz</span>
+                            </div>
+                            <div class="freq-control">
+                                <span>Pinna Q (대역폭)</span>
+                                <input type="range" id="pinna-q" min="0.5" max="5" step="0.1" value="2">
+                                <span id="pinna-q-value">2.0</span>
+                            </div>
+                            <div class="freq-control">
+                                <span>Head Shadow 주파수</span>
+                                <input type="range" id="head-shadow-freq" min="1000" max="8000" step="100" value="3000">
+                                <span id="head-shadow-freq-value">3000 Hz</span>
+                            </div>
+                            <div class="freq-control">
+                                <span>고주파 차단 (LPF)</span>
+                                <input type="range" id="hf-cutoff" min="4000" max="20000" step="500" value="20000">
+                                <span id="hf-cutoff-value">OFF</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
