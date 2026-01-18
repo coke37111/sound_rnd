@@ -372,43 +372,64 @@ header p {
     font-family: monospace;
 }
 
-/* 필터 주파수 설정 */
-.filter-freq-group {
+/* 주파수 대역별 컨트롤 */
+.freq-band-controls {
     grid-column: 1 / -1;
 }
 
-.filter-freq-controls {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 12px;
-    margin-top: 10px;
-}
-
-.freq-control {
+.band-tabs {
     display: flex;
-    flex-direction: column;
-    background: rgba(255, 107, 107, 0.1);
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 107, 107, 0.2);
+    gap: 5px;
+    margin: 10px 0;
 }
 
-.freq-control > span:first-child {
-    font-size: 0.8rem;
-    color: #ff9999;
-    margin-bottom: 5px;
-}
-
-.freq-control input[type="range"] {
-    width: 100%;
-    margin: 5px 0;
-}
-
-.freq-control > span:last-child {
+.band-tab {
+    flex: 1;
+    padding: 10px 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px 8px 0 0;
+    color: #888;
+    cursor: pointer;
     font-size: 0.85rem;
-    color: #ffe66d;
-    font-family: monospace;
     text-align: center;
+    transition: all 0.2s ease;
+}
+
+.band-tab:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #aaa;
+}
+
+.band-tab.active {
+    background: rgba(255, 107, 107, 0.2);
+    border-color: rgba(255, 107, 107, 0.5);
+    color: #ff6b6b;
+    border-bottom-color: transparent;
+}
+
+.band-tab small {
+    display: block;
+    font-size: 0.7rem;
+    color: #666;
+    margin-top: 2px;
+}
+
+.band-tab.active small {
+    color: #ff9999;
+}
+
+.band-panel {
+    display: none;
+    background: rgba(255, 107, 107, 0.05);
+    border: 1px solid rgba(255, 107, 107, 0.2);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 15px;
+}
+
+.band-panel.active {
+    display: block;
 }
 
 #filter-freq {
