@@ -172,6 +172,12 @@ class SpatialAudioEngine {
             return;
         }
 
+        // ESC 키로 위치 초기화
+        if (e.key === 'Escape') {
+            this.resetPosition();
+            return;
+        }
+
         // +/- 키 처리 (일반 키보드 및 키패드)
         if (e.key === '+' || e.key === '=' || e.code === 'NumpadAdd') {
             this.keys.plus = true;
@@ -188,6 +194,18 @@ class SpatialAudioEngine {
             this.keys[key] = true;
             this.highlightKey(key, true);
         }
+    }
+
+    resetPosition() {
+        // 구면 좌표 초기화
+        this.spherical.azimuth = 0;
+        this.spherical.elevation = 0;
+        this.spherical.radius = 5;
+
+        // 직교 좌표 업데이트
+        this.sphericalToCartesian();
+        this.updatePannerPosition();
+        this.updateUI();
     }
 
     handleKeyUp(e) {
