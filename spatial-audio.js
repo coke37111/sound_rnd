@@ -705,7 +705,7 @@ class SpatialAudioEngine {
 
         // 현재 고도에 따른 원 (수평 단면)
         const elevation = this.spherical.elevation;
-        const horizontalRadius = radius * Math.cos(elevation);
+        const horizontalRadius = Math.abs(radius * Math.cos(elevation));
 
         ctx.strokeStyle = 'rgba(255, 230, 109, 0.4)';
         ctx.lineWidth = 1.5;
