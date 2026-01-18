@@ -442,39 +442,232 @@ class SpatialAudioEngine {
         ctx.fillStyle = '#0a0a1a';
         ctx.fillRect(0, 0, width, height);
 
-        // 중심점 (원점)
-        const centerX = width / 2;
-        const centerY = height / 2;
-        const scale = 18; // 1 단위 = 18 픽셀
+        // 레이아웃: 왼쪽 Top-Down, 오른쪽 위 Side View, 오른쪽 아래 1인칭 뷰
+        const topDownWidth = width * 0.55;
+        const sideViewWidth = width * 0.45;
+        const sideViewHeight = height * 0.5;
 
-        // 구체 그리기
-        this.drawSphere(ctx, centerX, centerY, scale);
+        // 구분선
+        ctx.strokeStyle = 'rgba(0, 217, 255, 0.3)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(topDownWidth, 0);
+        ctx.lineTo(topDownWidth, height);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(topDownWidth, sideViewHeight);
+        ctx.lineTo(width, sideViewHeight);
+        ctx.stroke();
 
-        // 좌표축 표시
-        this.drawAxes(ctx, width, height);
+        // === Top-Down View (왼쪽) ===
+        const topDownCenterX = topDownWidth / 2;
+        const topDownCenterY = height / 2;
+        const scale = 16;
 
-        // 리스너 그리기 (원점)
-        this.drawListener(ctx, centerX, centerY);
+        this.drawSphere(ctx, topDownCenterX, topDownCenterY, scale);
+        this.drawListener(ctx, topDownCenterX, topDownCenterY);
 
-        // 소리 소스 그리기
-        const soundScreenX = centerX + this.soundPosition.x * scale;
-        const soundScreenY = centerY - this.soundPosition.z * scale; // Z축은 화면 Y축 반전
+        const soundScreenX = topDownCenterX + this.soundPosition.x * scale;
+        const soundScreenY = topDownCenterY - this.soundPosition.z * scale;
         this.drawSoundSource(ctx, soundScreenX, soundScreenY, this.soundPosition.y);
+        this.drawConnection(ctx, topDownCenterX, topDownCenterY, soundScreenX, soundScreenY);
 
-        // 연결선 그리기
-        this.drawConnection(ctx, centerX, centerY, soundScreenX, soundScreenY);
-
-        // 방향 표시
-        this.drawDirectionIndicators(ctx, width, height);
-
-        // 뷰 라벨
         ctx.fillStyle = '#666';
-        ctx.font = '14px Arial';
-        ctx.fillText('Top-Down View (구체 표면 위 이동)', 10, height - 10);
+        ctx.font = '12px Arial';
+        ctx.fillText('Top-Down View (위에서 본 모습)', 10, height - 10);
 
-        // 고도 표시
-        const elevationDeg = (this.spherical.elevation * 180 / Math.PI).toFixed(0);
-        ctx.fillText(`고도: ${elevationDeg}° (${this.soundPosition.y.toFixed(1)}m)`, width - 180, height - 10);
+        // === Side View (오른쪽 위) ===
+        this.drawSideView(ctx, topDownWidth, 0, sideViewWidth, sideViewHeight, scale);
+
+        // === 1인칭 방향 표시 (오른쪽 아래) ===
+        this.drawFirstPersonView(ctx, topDownWidth, sideViewHeight, sideViewWidth, height - sideViewHeight);
+
+        // 방향 텍스트 표시
+        this.drawDirectionIndicators(ctx, topDownWidth, height);
+    }
+
+    drawSideView(ctx, x, y, w, h, scale) {
+        const centerX = x + w / 2;
+        const centerY = y + h / 2;
+        const radius = this.spherical.radius * scale;
+
+        // 배경
+        ctx.fillStyle = 'rgba(0, 20, 40, 0.5)';
+        ctx.fillRect(x, y, w, h);
+
+        // 구체 외곽선 (YZ 평면)
+        ctx.strokeStyle = 'rgba(0, 217, 255, 0.3)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // 수평선 (지면)
+        ctx.strokeStyle = 'rgba(100, 255, 100, 0.3)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, centerY);
+        ctx.lineTo(x + w, centerY);
+        ctx.stroke();
+
+        // 수직선 (정면 방향)
+        ctx.strokeStyle = 'rgba(100, 100, 255, 0.3)';
+        ctx.beginPath();
+        ctx.moveTo(centerX, y);
+        ctx.lineTo(centerX, y + h);
+        ctx.stroke();
+
+        // 리스너 (중앙)
+        ctx.fillStyle = '#4ecdc4';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 10, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 소리 소스 위치 (ZY 평면에서)
+        const soundSideX = centerX + this.soundPosition.z * scale;
+        const soundSideY = centerY - this.soundPosition.y * scale;
+
+        // 연결선
+        ctx.strokeStyle = 'rgba(255, 230, 109, 0.4)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(soundSideX, soundSideY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // 소리 소스
+        const time = Date.now() / 1000;
+        const pulseSize = this.isPlaying ? 10 + Math.sin(time * 5) * 2 : 10;
+
+        if (this.isPlaying) {
+            ctx.strokeStyle = 'rgba(255, 107, 107, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(soundSideX, soundSideY, pulseSize + 10, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        ctx.fillStyle = '#ff6b6b';
+        ctx.beginPath();
+        ctx.arc(soundSideX, soundSideY, pulseSize, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 라벨
+        ctx.fillStyle = '#666';
+        ctx.font = '11px Arial';
+        ctx.fillText('Side View (측면)', x + 10, y + 20);
+        ctx.fillStyle = 'rgba(100, 255, 100, 0.6)';
+        ctx.fillText('← 뒤', x + 10, centerY - 5);
+        ctx.fillText('앞 →', x + w - 35, centerY - 5);
+        ctx.fillStyle = 'rgba(100, 100, 255, 0.6)';
+        ctx.fillText('위', centerX + 5, y + 20);
+        ctx.fillText('아래', centerX + 5, y + h - 10);
+    }
+
+    drawFirstPersonView(ctx, x, y, w, h) {
+        const centerX = x + w / 2;
+        const centerY = y + h / 2;
+        const indicatorRadius = Math.min(w, h) * 0.35;
+
+        // 배경
+        ctx.fillStyle = 'rgba(20, 0, 40, 0.5)';
+        ctx.fillRect(x, y, w, h);
+
+        // 원형 레이더 배경
+        ctx.strokeStyle = 'rgba(0, 217, 255, 0.2)';
+        ctx.lineWidth = 1;
+        for (let r = indicatorRadius; r > 0; r -= indicatorRadius / 3) {
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, r, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        // 십자선
+        ctx.strokeStyle = 'rgba(0, 217, 255, 0.3)';
+        ctx.beginPath();
+        ctx.moveTo(centerX - indicatorRadius, centerY);
+        ctx.lineTo(centerX + indicatorRadius, centerY);
+        ctx.moveTo(centerX, centerY - indicatorRadius);
+        ctx.lineTo(centerX, centerY + indicatorRadius);
+        ctx.stroke();
+
+        // 방향 라벨
+        ctx.fillStyle = 'rgba(0, 217, 255, 0.7)';
+        ctx.font = '10px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('앞', centerX, centerY - indicatorRadius - 5);
+        ctx.fillText('뒤', centerX, centerY + indicatorRadius + 12);
+        ctx.fillText('좌', centerX - indicatorRadius - 10, centerY + 4);
+        ctx.fillText('우', centerX + indicatorRadius + 10, centerY + 4);
+
+        // 소리 방향 표시 (azimuth와 elevation 기반)
+        const azimuth = this.spherical.azimuth;
+        const elevation = this.spherical.elevation;
+
+        // 2D 레이더에서의 위치 (azimuth로 방향, elevation으로 중심에서의 거리 표현)
+        const distFromCenter = indicatorRadius * (1 - Math.abs(Math.sin(elevation)) * 0.7);
+        const soundIndicatorX = centerX + Math.sin(azimuth) * distFromCenter;
+        const soundIndicatorY = centerY - Math.cos(azimuth) * distFromCenter;
+
+        // 소리 방향 선
+        ctx.strokeStyle = 'rgba(255, 107, 107, 0.6)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(soundIndicatorX, soundIndicatorY);
+        ctx.stroke();
+
+        // 소리 위치 표시
+        const time = Date.now() / 1000;
+        const pulseSize = this.isPlaying ? 12 + Math.sin(time * 5) * 3 : 12;
+
+        if (this.isPlaying) {
+            for (let i = 0; i < 2; i++) {
+                const rippleSize = pulseSize + 8 + i * 12 + (time * 20 % 15);
+                ctx.strokeStyle = `rgba(255, 107, 107, ${0.3 - i * 0.1})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(soundIndicatorX, soundIndicatorY, rippleSize, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+
+        const gradient = ctx.createRadialGradient(
+            soundIndicatorX - 2, soundIndicatorY - 2, 0,
+            soundIndicatorX, soundIndicatorY, pulseSize
+        );
+        gradient.addColorStop(0, '#ff8a8a');
+        gradient.addColorStop(1, '#ff6b6b');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(soundIndicatorX, soundIndicatorY, pulseSize, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 위/아래 표시
+        if (Math.abs(elevation) > 0.3) {
+            const arrowY = elevation > 0 ? -8 : 8;
+            ctx.fillStyle = elevation > 0 ? '#4ecdc4' : '#ff6b6b';
+            ctx.font = 'bold 14px Arial';
+            ctx.fillText(elevation > 0 ? '▲' : '▼', soundIndicatorX, soundIndicatorY + arrowY);
+        }
+
+        // 중앙 (나)
+        ctx.fillStyle = '#4ecdc4';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.font = '8px Arial';
+        ctx.fillText('나', centerX, centerY + 3);
+
+        ctx.textAlign = 'left';
+
+        // 라벨
+        ctx.fillStyle = '#666';
+        ctx.font = '11px Arial';
+        ctx.fillText('1인칭 레이더', x + 10, y + 20);
     }
 
     drawSphere(ctx, centerX, centerY, scale) {
