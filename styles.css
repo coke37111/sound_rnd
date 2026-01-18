@@ -322,6 +322,89 @@ header p {
     font-family: monospace;
 }
 
+/* 그리드 레이아웃 */
+.controls-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+/* 고급 설정 섹션 */
+#advanced-controls {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 20px;
+    border-radius: 15px;
+    border: 1px solid rgba(78, 205, 196, 0.3);
+}
+
+#advanced-controls h3 {
+    color: #4ecdc4;
+    margin-bottom: 15px;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+#advanced-controls .control-group {
+    margin-bottom: 8px;
+}
+
+#advanced-controls .control-group label {
+    font-size: 0.85rem;
+    color: #aaa;
+}
+
+#advanced-controls input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    background: #2a2a2a;
+    border-radius: 3px;
+    outline: none;
+    margin: 8px 0;
+}
+
+#advanced-controls input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: linear-gradient(135deg, #4ecdc4 0%, #2a9d8f 100%);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(78, 205, 196, 0.4);
+}
+
+#advanced-controls input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: linear-gradient(135deg, #4ecdc4 0%, #2a9d8f 100%);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+#advanced-controls input[type="file"] {
+    background: #2a2a2a;
+    border: 1px dashed #4ecdc4;
+    border-radius: 8px;
+    padding: 8px;
+    color: #aaa;
+    cursor: pointer;
+    width: 100%;
+    font-size: 0.85rem;
+}
+
+#advanced-controls input[type="file"]:hover {
+    border-color: #2a9d8f;
+    background: rgba(78, 205, 196, 0.1);
+}
+
+#advanced-controls span {
+    font-size: 0.8rem;
+    color: #4ecdc4;
+    font-family: monospace;
+}
+
 .status-on {
     color: #4ecdc4;
     font-size: 1.2rem;
